@@ -32,6 +32,7 @@ installer/out/
 *.swp
 Thumbs.db
 desktop.ini
+prompts/
 # Logs and scratch
 *.log
 scratch/
