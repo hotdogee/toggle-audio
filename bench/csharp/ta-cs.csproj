@@ -1,0 +1,103 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    ta-cs: the C# .NET 9 NativeAOT implementation of the toggle-audio bench CLI.
+    Build with build.ps1 (which runs `dotnet publish -c Release -r win-x64`).
+    Every property below exists to make the native image start faster or smaller;
+    README.md explains each one.
+  -->
+
+  <PropertyGroup Label="Project">
+    <!-- Console subsystem (IMAGE_SUBSYSTEM_WINDOWS_CUI = 3). The embedded manifest's
+         consoleAllocationPolicy=detached stops Windows 11 24H2+ from creating a console
+         window when the exe is launched from a GUI process such as G HUB or Explorer. -->
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <AssemblyName>ta-cs</AssemblyName>
+    <RootNamespace>ToggleAudio.Bench</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <!-- COM is called through raw vtable function pointers, which needs unsafe code. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ApplicationManifest>..\common\detached.manifest</ApplicationManifest>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <Deterministic>true</Deterministic>
+    <!-- Keep the IL build output out of bin\ so bin\ holds only the final ta-cs.exe. -->
+    <BaseOutputPath>obj\out\</BaseOutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup Label="NativeAOT">
+    <!-- Compile ahead of time to a single native exe: no JIT, no .NET runtime install. -->
+    <PublishAot>true</PublishAot>
+    <!-- Whole-program trimming (already the default under PublishAot; stated for clarity). -->
+    <TrimMode>full</TrimMode>
+    <!-- Favour speed over size in the ILC code generator. -->
+    <OptimizationPreference>Speed</OptimizationPreference>
+    <!-- Merge methods whose machine code is identical (smaller image, nothing to lose here). -->
+    <IlcFoldIdenticalMethodBodies>true</IlcFoldIdenticalMethodBodies>
+    <!-- Do not emit stack trace metadata (method names for Exception.StackTrace). -->
+    <StackTraceSupport>false</StackTraceSupport>
+    <IlcGenerateStackTraceData>false</IlcGenerateStackTraceData>
+    <!-- Native debug symbols go to a separate .pdb instead of bloating the exe. -->
+    <StripSymbols>true</StripSymbols>
+    <!-- Built-in COM interop is not supported by NativeAOT anyway; we call vtables directly. -->
+    <BuiltInComInteropSupport>false</BuiltInComInteropSupport>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Runtime feature switches (trim away unused framework code)">
+    <!-- No ICU loading and no culture data: culture-sensitive APIs behave as invariant. -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <InvariantTimezone>true</InvariantTimezone>
+    <!-- Exception messages become resource keys instead of embedded English strings. -->
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <DebuggerSupport>false</DebuggerSupport>
+    <EventSourceSupport>false</EventSourceSupport>
+    <MetricsSupport>false</MetricsSupport>
+    <UseNativeHttpHandler>false</UseNativeHttpHandler>
+    <HttpActivityPropagationSupport>false</HttpActivityPropagationSupport>
+    <NullabilityInfoContextSupport>false</NullabilityInfoContextSupport>
+    <EnableUnsafeBinaryFormatterSerialization>false</EnableUnsafeBinaryFormatterSerialization>
+    <EnableUnsafeUTF7Encoding>false</EnableUnsafeUTF7Encoding>
+  </PropertyGroup>
+
+  <ItemGroup Label="Direct P/Invoke">
+    <!-- Bind these imports statically in the PE import table instead of the default lazy
+         LoadLibrary/GetProcAddress stub on first call. ole32.lib and kernel32.lib are part
+         of the default NativeAOT link line. -->
+    <DirectPInvoke Include="ole32" />
+    <DirectPInvoke Include="kernel32" />
+  </ItemGroup>
+
+  <PropertyGroup Label="Toolchain pinning">
+    <!-- Pin the code generator and the framework it compiles, so another machine (or a newer
+         SDK) produces the same native code and comparable numbers. global.json pins the SDK
+         band; these two pin the exact ILCompiler and runtime pack. Bump all three together. -->
+    <TaIlcVersion>9.0.20</TaIlcVersion>
+    <RuntimeFrameworkVersion>$(TaIlcVersion)</RuntimeFrameworkVersion>
+  </PropertyGroup>
+
+  <!-- The SDK picks the ILCompiler pack from its KnownILCompilerPack list (the patch it shipped
+       with). Override this framework's entry just before the SDK reads it (restore and build
+       both run ProcessFrameworkReferences), instead of adding an explicit PackageReference,
+       which the ILCompiler targets warn against. -->
+  <Target Name="TaPinILCompilerPack" BeforeTargets="ProcessFrameworkReferences">
+    <ItemGroup>
+      <KnownILCompilerPack Condition="'%(KnownILCompilerPack.Identity)' == 'Microsoft.DotNet.ILCompiler' and '%(KnownILCompilerPack.TargetFramework)' == '$(TargetFramework)'">
+        <ILCompilerPackVersion>$(TaIlcVersion)</ILCompilerPackVersion>
+      </KnownILCompilerPack>
+    </ItemGroup>
+  </Target>
+
+  <ItemGroup Label="Reproducible native image">
+    <!-- /Brepro: link.exe writes a content hash instead of the wall-clock time into the PE
+         TimeDateStamp and the debug directory (and derives the PDB GUID from it), so rebuilding
+         unchanged sources gives a byte-identical exe. A new hash would trigger a fresh Defender
+         scan on first launch and distort the benchmark (benchmark-method.md 1.6).
+         <Deterministic> above only covers the IL assembly, not the ILC + link.exe output. -->
+    <LinkerArg Include="/Brepro" />
+  </ItemGroup>
+
+</Project>

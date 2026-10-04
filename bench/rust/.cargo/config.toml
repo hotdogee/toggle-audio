@@ -1,0 +1,13 @@
+[target.x86_64-pc-windows-msvc]
+rustflags = [
+    # Link the C runtime statically so the exe does not depend on the VC++
+    # redistributable (vcruntime140.dll is not part of Windows).
+    # https://doc.rust-lang.org/reference/linkage.html#static-and-dynamic-c-runtimes
+    "-C", "target-feature=+crt-static",
+    # windows-rs option: windows::core::Error keeps only the HRESULT and does
+    # not capture IErrorInfo. That removes the oleaut32.dll import
+    # (GetErrorInfo), i.e. one fewer DLL for the loader to map at startup. We
+    # only ever print the HRESULT, so nothing is lost.
+    # https://github.com/microsoft/windows-rs (windows-result: windows_slim_errors)
+    "--cfg", "windows_slim_errors",
+]

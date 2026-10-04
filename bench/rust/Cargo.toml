@@ -1,0 +1,62 @@
+[package]
+name = "ta-rs"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+publish = false
+license = "MIT"
+description = "Benchmark implementation of the toggle-audio bench CLI contract in Rust (windows crate)"
+build = "build.rs"
+
+# Standalone crate: an empty [workspace] table makes it its own workspace root,
+# so it keeps its own release profile and Cargo.lock even though it lives inside
+# the product repository (whose root workspace also lists it in `exclude`).
+[workspace]
+
+[[bin]]
+name = "ta-rs"
+path = "src/main.rs"
+
+[dependencies]
+# Both pinned exactly: `#[interface]` expands to `::windows_core::...` paths, so
+# windows-core must be a direct dependency AND the same version that `windows`
+# uses. windows-core 0.100 exists without a matching `windows` release.
+windows-core = "=0.62.2"
+
+[dependencies.windows]
+version = "=0.62.2"
+features = [
+    "Win32_Foundation",                   # HANDLE, FILETIME, PROPERTYKEY, E_INVALIDARG, RPC_E_CHANGED_MODE
+    "Win32_Media_Audio",                  # IMMDeviceEnumerator, MMDeviceEnumerator, eRender, ERole, DEVICE_STATE_ACTIVE
+    "Win32_System_Com",                   # CoInitializeEx, CoCreateInstance, CoTaskMemFree, STGM_READ, CLSCTX
+    "Win32_System_Com_StructuredStorage", # PROPVARIANT, PropVariantClear
+    "Win32_System_Variant",               # VT_LPWSTR; also required for PROPVARIANT / IPropertyStore::GetValue to exist
+    "Win32_UI_Shell_PropertiesSystem",    # IPropertyStore (IMMDevice::OpenPropertyStore is gated on it)
+    "Win32_Devices_FunctionDiscovery",    # PKEY_Device_FriendlyName
+    "Win32_System_Console",               # GetStdHandle, GetConsoleMode, WriteConsoleW
+    "Win32_Storage_FileSystem",           # WriteFile
+    "Win32_System_IO",                    # WriteFile's OVERLAPPED parameter (WriteFile is gated on it)
+    "Win32_System_Performance",           # QueryPerformanceCounter / QueryPerformanceFrequency (--timing)
+    "Win32_System_SystemInformation",     # GetSystemTimePreciseAsFileTime (--timing)
+    "Win32_System_Threading",             # GetProcessTimes, GetCurrentProcess (--timing)
+]
+
+[profile.release]
+opt-level = 3        # optimize for speed; startup is dominated by the loader and COM, not code size
+lto = "fat"          # whole-program LTO across std + windows crate: smaller and faster binary
+codegen-units = 1    # one codegen unit so LLVM sees everything at once (better inlining, smaller output)
+panic = "abort"      # no unwinding tables or landing pads; a panic would be a bug anyway
+strip = true         # drop symbols from the exe (no PDB info embedded)
+debug = false        # no debug info
+incremental = false  # reproducible, fully optimized release builds
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "warn"
+
+[lints.clippy]
+# Pedantic is on so the few targeted `#[allow(clippy::...)]` in the sources
+# (lossless-in-practice casts in src/timing.rs) actually mean something.
+pedantic = { level = "warn", priority = -1 }
+undocumented_unsafe_blocks = "warn"
+unwrap_used = "warn"
+expect_used = "warn"
