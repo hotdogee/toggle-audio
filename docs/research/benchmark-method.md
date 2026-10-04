@@ -21,7 +21,7 @@ Root: `S = C:\Users\Hotdogee\AppData\Local\Temp\claude\I--Projects-switch-audio\
 | IMMDeviceCollection | GetCount=3, Item=4 |
 | IMMDevice | Activate=3, OpenPropertyStore=4, GetId=5, GetState=6 |
 | IPropertyStore | GetCount=3, GetAt=4, GetValue=5, SetValue=6, Commit=7 |
-| PKEY_Device_FriendlyName | fmtid `{A45C254E-DF1C-4EFD-8020-67D146A850E0}`, pid 14 (VT_LPWSTR; `pwszVal` is at byte offset 8 of the 16-byte x64 PROPVARIANT; free it with `PropVariantClear` from ole32) |
+| PKEY_Device_FriendlyName | fmtid `{A45C254E-DF1C-4EFD-8020-67D146A850E0}`, pid 14 (VT_LPWSTR; `pwszVal` is at byte offset 8 of the 24-byte x64 PROPVARIANT (sizeof(PROPVARIANT) == 24 on x64); free it with `PropVariantClear` from ole32) |
 | CLSID_PolicyConfigClient (undocumented) | `{870AF99C-171D-4F9E-AF0D-E63DF40C2BC9}`. In-proc server `C:\Windows\System32\AudioSes.dll`, ThreadingModel `Both` (checked in the registry on this PC) |
 | IID_IPolicyConfig (Win7+, undocumented) | `{F8679F50-850A-41CF-9C72-430F290290C8}`. vtable: GetMixFormat=3, GetDeviceFormat=4, ResetDeviceFormat=5, SetDeviceFormat=6, GetProcessingPeriod=7, SetProcessingPeriod=8, GetShareMode=9, SetShareMode=10, GetPropertyValue=11, SetPropertyValue=12, **SetDefaultEndpoint=13** `HRESULT(PCWSTR deviceId, ERole role)`, SetEndpointVisibility=14 |
 | Constants | eRender=0; eConsole=0, eMultimedia=1, eCommunications=2; DEVICE_STATE_ACTIVE=1; STGM_READ=0; CLSCTX_INPROC_SERVER=1 (CLSCTX_ALL=0x17 also works) |
@@ -358,7 +358,7 @@ COM under AOT: classic `[ComImport]` interop is **unsupported** in NativeAOT. Th
    - Declare `[LibraryImport("ole32.dll")] static partial int CoCreateInstance(in Guid clsid, nint outer, uint ctx, in Guid iid, out nint ppv);` (likewise CoInitializeEx, CoUninitialize, CoTaskMemFree, PropVariantClear).
    - Call through the vtable: `var vtbl = *(nint**)p; int hr = ((delegate* unmanaged[Stdcall]<nint, char*, int, int>)vtbl[13])(p, idPtr, role);`
    - Release is `((delegate* unmanaged<nint, uint>)vtbl[2])(p)`.
-   - PROPVARIANT: a 16-byte `stackalloc`; `pwszVal` is at offset 8.
+   - PROPVARIANT: a 24-byte `stackalloc` (sizeof on x64 is 24, not 16); `pwszVal` is at offset 8.
 2. **Source-generated COM**: `[GeneratedComInterface]` + `[Guid]` on partial interfaces, and `StrategyBasedComWrappers` (`new StrategyBasedComWrappers().GetOrCreateObjectForComInstance(ptr, CreateObjectFlags.None)`). This is AOT-safe and readable, but adds the ComWrappers runtime (~100-300 KB, small init cost). Suitable for a C# product; reference https://learn.microsoft.com/dotnet/standard/native-interop/comwrappers-source-generation
 
 Other rules:

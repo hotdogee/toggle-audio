@@ -146,6 +146,19 @@ Cargo: `[workspace] exclude = ["bench/rust"]` so the standalone bench crate keep
 
 Common bench CLI contract (from `docs/research/benchmark-method.md` §1): `list`, `get`, `set <id>`, `toggle <idA> <idB>`, no-args exits 1 without COM work, `--timing` phase stamps on stderr, exit codes 0/1/2/3/4, UTF-8 output. Deviation from that document: bench binaries are built for the **console** subsystem with the `consoleAllocationPolicy=detached` manifest embedded (via `mt.exe` or the toolchain), so hyperfine, output capture and the G HUB no-flash behaviour are all covered by one binary per language; the C directory additionally builds `nop.exe`/`nop-con.exe` floors and a GUI-subsystem C variant for comparison. Real-toggle measurements use the two NVIDIA HDMI outputs (PG42UQ ↔ PHL BDM4065) and restore PG42UQ. Results go to `bench/RESULTS.md` and are summarized in the README.
 
+Adopted bench contract (what every implementation in `bench/` actually does; this supersedes the wording in `docs/research/benchmark-method.md` §1 where they differ):
+
+| Command | stdout | Exit |
+| --- | --- | --- |
+| `list` | one line per active render endpoint: `<id>\t<name>\t<flags>`, flags `*` (default), `c` (default communications), `*c` or `-` | 0 |
+| `get` | `<id>\t<name>` of the current default (eConsole) | 0, or 4 if none |
+| `set <id>` | nothing; sets eConsole, eMultimedia, eCommunications in that order after checking the endpoint is ACTIVE | 0; 3 if unknown/inactive |
+| `toggle <idA> <idB>` | the id that was set | 0; 3 if the target is unknown/inactive |
+| (no args) | one usage line on stderr, no COM work (runtime floor) | 1 |
+| `--timing` | on stderr, `phase\t<name>\t<microseconds since process creation>` for `entry`, `com_init`, `enumerator`, `work_done`, `exit` (`entry` is the create-to-entry interval) | — |
+
+Exit 2 means a COM failure (HRESULT printed on stderr). Output is UTF-8 with `\n` line endings when redirected. Known per-language caveats are recorded in each `bench/<lang>/README.md` (for example, .NET NativeAOT initializes COM before `Main`, so its `com_init` phase is near zero and the cost shows in `entry`).
+
 ## 13. Packaging (`installer/`)
 
 WiX Toolset 7 (dotnet global tool; `wix eula accept wix7` once or `--acceptEula wix7` in CI), hand-written `toggle-audio.wxs` adapted from `docs/research/packaging.md` §4: per-machine x64, `ProgramFiles64Folder\Toggle Audio` (unversioned so the G HUB binding survives upgrades), `MajorUpgrade` scheduled `afterInstallInitialize`, **UpgradeCode `{C82A4013-F2FF-448E-A4AE-63CD73760A63}` never changes**, ProductCode auto-generated per build, component GUIDs derived, files `toggle-audio.exe`, `toggle-audiow.exe`, `LICENSE`, advertised Start Menu shortcut "Toggle Audio Settings" → `toggle-audiow.exe settings`, App Paths registration for both exes, optional PATH feature (selectable, default on), ARP icon/URLs, `WixUI_InstallDir` with License.rtf. `installer/build-msi.ps1` reads the version from Cargo.toml and runs `cargo build --release` + `wix build`. Validation without admin: `wix msi validate`. Real install/upgrade/uninstall test needs UAC (user). Unsigned for v0.x; README documents SmartScreen and SHA256 verification; SignPath Foundation is the future signing route.
