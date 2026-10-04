@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and help
+    url: https://github.com/hotdogee/toggle-audio/discussions
+    about: Ask how to set up Toggle Audio, bind it to a key, or anything else that is not a bug.
+  - name: Report a security vulnerability
+    url: https://github.com/hotdogee/toggle-audio/security/advisories/new
+    about: Please report security issues privately, not as a public issue (see SECURITY.md).

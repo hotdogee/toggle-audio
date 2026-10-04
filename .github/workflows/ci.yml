@@ -1,0 +1,217 @@
+# Continuous integration for Toggle Audio.
+#
+# Action versions are pinned to major tags; latest releases checked 2026-10-04:
+#   actions/checkout v7, actions/upload-artifact v7, actions/setup-dotnet v6,
+#   actions/setup-go v7, dtolnay/rust-toolchain (stable branch),
+#   Swatinem/rust-cache v2, ilammy/msvc-dev-cmd v1, mlugg/setup-zig v2.
+# Dependabot (.github/dependabot.yml) proposes bumps weekly.
+#
+# Hosted runners have no audio endpoints: tests that touch real devices are
+# #[ignore]d and never run here (see docs/DESIGN.md section 11).
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # Do not set RUSTFLAGS here: it would replace the +crt-static rustflags
+  # from .cargo/config.toml.
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  rust:
+    name: Rust (fmt, clippy, test, release build)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # The MSVC linker and the Windows SDK (rc.exe, used by embed-resource in
+      # build.rs) are preinstalled on windows-latest; cargo finds them without
+      # a vcvars step.
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: toggle-audio
+
+      - name: cargo fmt
+        run: cargo fmt --all -- --check
+
+      - name: cargo clippy
+        run: cargo clippy --all-targets --locked -- -D warnings
+
+      - name: cargo test
+        run: cargo test --locked
+
+      - name: cargo build --release
+        run: cargo build --release --locked
+
+      - name: Show binary sizes
+        run: Get-Item target/release/toggle-audio.exe, target/release/toggle-audiow.exe | Format-Table Name, Length
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: toggle-audio-exes
+          path: |
+            target/release/toggle-audio.exe
+            target/release/toggle-audiow.exe
+          if-no-files-found: error
+
+  bench-build:
+    name: Benchmarks (compile only, no timing)
+    runs-on: windows-latest
+    # Every step below runs even if an earlier language failed (!cancelled()),
+    # so one run reports all broken implementations; the job still fails if
+    # any non-experimental step fails. The build.ps1 scripts discover tools
+    # from PATH (with fallbacks to the maintainer's local paths), so the setup
+    # actions below only need to put each toolchain on PATH.
+    steps:
+      - uses: actions/checkout@v7
+
+      # Sets the vcvars64 environment (cl.exe, link.exe, mt.exe, rc.exe on
+      # PATH plus INCLUDE/LIB) for all following steps.
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: C (MSVC)
+        if: ${{ !cancelled() }}
+        run: ./bench/c/build.ps1
+
+      - name: Baselines (nop floors)
+        if: ${{ !cancelled() }}
+        run: ./bench/baseline/build.ps1
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust
+        if: ${{ !cancelled() }}
+        run: cargo build --release --manifest-path bench/rust/Cargo.toml
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 9.0.x
+
+      - name: C# (NativeAOT)
+        if: ${{ !cancelled() }}
+        run: |
+          # NativeAOT's linker discovery calls vswhere.exe unqualified.
+          $env:PATH = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer;$env:PATH"
+          ./bench/csharp/build.ps1
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          cache: false
+
+      - name: Go
+        if: ${{ !cancelled() }}
+        run: ./bench/go/build.ps1
+
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.17.0
+
+      # Experimental: Zig is pre-1.0, its std and build flags change between
+      # releases, and setup-zig downloads from community mirrors that are
+      # occasionally unavailable. A Zig break must not block product changes.
+      - name: Zig (experimental)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: ./bench/zig/build.ps1
+
+      # Experimental: the PowerShell baseline (ps2exe wrapper of the original
+      # proof of concept) depends on the PowerShell Gallery being reachable and
+      # on a third-party module; it is a historical reference, not product code.
+      - name: PowerShell baseline (experimental)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: |
+          Install-Module ps2exe -Scope CurrentUser -Force
+          ./bench/powershell/build.ps1
+
+  msi:
+    name: MSI (WiX 7)
+    runs-on: windows-latest
+    needs: rust
+    # ---------------------------------------------------------------------
+    # PENDING installer/: this job is enabled once installer/ lands
+    # (installer/build-msi.ps1 and installer/toggle-audio.wxs). Until then the
+    # "Detect installer sources" step finds no build-msi.ps1 and every later
+    # step is skipped, so the job passes as a no-op. Once installer/ exists it
+    # becomes a required build automatically; no edit to this file is needed.
+    # Expected output: installer/out/toggle-audio-<version>-x64.msi
+    # ---------------------------------------------------------------------
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Detect installer sources
+        id: detect
+        run: |
+          $present = (Test-Path installer/build-msi.ps1) -and (Test-Path installer/toggle-audio.wxs)
+          "present=$($present.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+          if (-not $present) { Write-Host '::notice::installer/ not present yet; MSI build skipped.' }
+
+      - uses: dtolnay/rust-toolchain@stable
+        if: steps.detect.outputs.present == 'true'
+
+      # Reuses the rust job's cache (same shared-key) but never writes it.
+      - uses: Swatinem/rust-cache@v2
+        if: steps.detect.outputs.present == 'true'
+        with:
+          shared-key: toggle-audio
+          save-if: false
+
+      - uses: actions/setup-dotnet@v6
+        if: steps.detect.outputs.present == 'true'
+        with:
+          dotnet-version: 9.0.x
+
+      # WiX v7 is under the OSMF EULA v1.1 (no fee below US$10k/yr revenue;
+      # see docs/research/packaging.md section 2). Extension versions must
+      # match the wix.exe major version.
+      - name: Install WiX Toolset 7
+        if: steps.detect.outputs.present == 'true'
+        run: |
+          dotnet tool install --global wix --version 7.0.0
+          wix eula accept wix7
+          wix extension add -g WixToolset.UI.wixext/7.0.0
+          wix extension add -g WixToolset.Util.wixext/7.0.0
+          wix --version
+
+      # build-msi.ps1 reads the version from Cargo.toml, runs
+      # cargo build --release (warm from the shared cache) and wix build.
+      - name: Build MSI
+        if: steps.detect.outputs.present == 'true'
+        run: ./installer/build-msi.ps1
+
+      - name: Validate MSI (ICE)
+        if: steps.detect.outputs.present == 'true'
+        run: |
+          $msi = Get-ChildItem installer/out/*.msi
+          if (-not $msi) { throw 'build-msi.ps1 produced no installer/out/*.msi' }
+          foreach ($m in $msi) { wix msi validate $m.FullName; if ($LASTEXITCODE) { exit $LASTEXITCODE } }
+
+      - uses: actions/upload-artifact@v7
+        if: steps.detect.outputs.present == 'true'
+        with:
+          name: toggle-audio-msi
+          path: installer/out/*.msi
+          if-no-files-found: error

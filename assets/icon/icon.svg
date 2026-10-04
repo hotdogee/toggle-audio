@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <title>Toggle Audio</title>
+  <rect x="8" y="8" width="240" height="240" rx="56" fill="#1F6FEB"/>
+  <polygon points="36,98 76,98 124,48 124,208 76,158 36,158" fill="#FFFFFF"/>
+  <polygon points="140,78 184,78 184,56 222,92 184,128 184,106 140,106" fill="#F59E0B"/>
+  <polygon points="222,150 178,150 178,128 140,164 178,200 178,178 222,178" fill="#F59E0B"/>
+</svg>

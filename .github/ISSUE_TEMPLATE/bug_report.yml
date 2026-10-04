@@ -1,0 +1,129 @@
+name: Bug report
+description: Toggle Audio did not switch, switched to the wrong device, showed an error, or misbehaved.
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. The command outputs below let us reproduce most problems without a back-and-forth.
+        Run them in a terminal (Windows Terminal or PowerShell) from the install folder, for example
+        `& "C:\Program Files\Toggle Audio\toggle-audio.exe" --version`.
+
+  - type: input
+    id: version
+    attributes:
+      label: Toggle Audio version
+      description: Output of `toggle-audio --version`.
+      placeholder: toggle-audio 0.1.0
+    validations:
+      required: true
+
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version and build
+      description: "Run `winver`, or `cmd /c ver` in a terminal. The build matters: console behaviour changed in Windows 11 24H2 (build 26100)."
+      placeholder: Windows 11 Pro 24H2, build 26100.2314
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install it?
+      options:
+        - MSI installer
+        - Portable zip
+        - winget
+        - cargo install
+        - Built from source
+    validations:
+      required: true
+
+  - type: dropdown
+    id: launched
+    attributes:
+      label: How was it launched?
+      options:
+        - Logitech G HUB (Launch Application)
+        - Other macro software (Stream Deck, Razer Synapse, AutoHotkey, ...)
+        - Terminal (PowerShell, cmd, Windows Terminal)
+        - Start Menu (Toggle Audio Settings)
+        - Desktop or Explorer shortcut
+        - Other (describe below)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: exe
+    attributes:
+      label: Which executable?
+      options:
+        - toggle-audio.exe (console)
+        - toggle-audiow.exe (windowless)
+        - Both / not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: devices
+    attributes:
+      label: Playback devices
+      description: |
+        Output of `toggle-audio list` (`*` marks the default device, `c` the default communications device).
+        Device ids identify your hardware model only; remove anything you consider private.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration
+      description: Contents of `%APPDATA%\toggle-audio\config.json`, if it exists.
+      render: json
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Set Device 1 to ... and Device 2 to ... in Settings
+        2. Press the G1 key
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include any error text or message box, the exit code (`$LASTEXITCODE` in PowerShell), and, for slowness, the output of `toggle-audio --timing`.
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Screenshots, Bluetooth or USB audio adapters involved, other audio tools installed (SoundSwitch, EarTrumpet, ...).
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched the existing issues and this is not a duplicate.
+          required: true
+        - label: I am using the latest release of Toggle Audio.
+          required: false
+        - label: This is not a security vulnerability (those go through private reporting, see SECURITY.md).
+          required: true

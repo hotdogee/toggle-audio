@@ -1,0 +1,24 @@
+# Changelog
+
+All notable changes to this project are documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+Initial native release; replaces the PowerShell proof of concept (`Switch-Audio.exe`, built with ps2exe, about 900 ms per toggle).
+
+### Added
+
+- Instant toggle: `toggle-audio` flips the Windows default playback device between two configured endpoints in milliseconds. Sets the Console and Multimedia roles, plus Communications unless disabled (`switch_communications`, `--comm` / `--no-comm`). Falls back to the other device when the preferred one is unplugged, and reports an error instead of a silent no-op when neither is available.
+- Two native x64 executables with a static CRT and no runtime dependencies: `toggle-audio.exe` (console subsystem, `consoleAllocationPolicy = detached`, so no console window flashes on Windows 11 24H2 and later) and `toggle-audiow.exe` (GUI subsystem, never creates a console; for hotkeys on older Windows builds).
+- Command-line interface: `list` (active playback endpoints with id, name and default flags), `get` (current default device), `set <id-or-name>` (by endpoint id, exact friendly name or unique substring), `settings`, `--help`, `--version` and `--timing` (per-phase timings on stderr). Documented exit codes 0 to 4. Unicode-safe output: UTF-16 to the console, UTF-8 when redirected.
+- Errors are shown in a message box when there is no console, so a failed hotkey press never fails silently.
+- Settings dialog (`toggle-audio settings`, Start Menu "Toggle Audio Settings"): pick Device 1 and Device 2 from the active playback devices, keep a disconnected device selectable, test the toggle before saving, and copy the command line for Logitech G HUB or any other launcher.
+- Per-user configuration in `%APPDATA%\toggle-audio\config.json`, stored by stable endpoint id and written atomically.
+- Per-machine MSI installer (WiX Toolset 7) into `C:\Program Files\Toggle Audio\` with a Start Menu shortcut, App Paths registration, an optional PATH entry, in-place upgrades and clean uninstall.
+- Reproducible benchmarks under `bench/`: optimized implementations in C, Rust, C# NativeAOT, Go and Zig plus PowerShell baselines, a shared CLI contract, a hyperfine harness and published results.
+- Continuous integration (format, lint, tests, release build, benchmark builds) and tag-driven release automation with a portable zip and `SHA256SUMS`.
+
+[Unreleased]: https://github.com/hotdogee/toggle-audio/commits/main

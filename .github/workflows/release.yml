@@ -1,0 +1,164 @@
+# Release pipeline: push a tag vX.Y.Z (equal to the Cargo.toml version) to
+# build the exes and the MSI, package a portable zip, write SHA256SUMS.txt,
+# attest build provenance and publish a GitHub Release.
+#
+# Action versions are pinned to major tags; latest releases checked 2026-10-04:
+#   actions/checkout v7, actions/setup-dotnet v6, actions/upload-artifact v7,
+#   actions/attest-build-provenance v4, softprops/action-gh-release v3,
+#   dtolnay/rust-toolchain (stable branch).
+# No build cache is used here on purpose: release binaries are built from a
+# clean target directory.
+
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write       # create the release and upload assets
+  id-token: write       # build provenance (Sigstore OIDC)
+  attestations: write   # build provenance
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  release:
+    name: Build and publish
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Verify tag matches Cargo.toml version
+        id: version
+        run: |
+          $meta = cargo metadata --no-deps --format-version 1 --locked | ConvertFrom-Json
+          $version = ($meta.packages | Where-Object name -eq 'toggle-audio').version
+          if (-not $version) { throw 'Could not read the toggle-audio version from Cargo.toml' }
+          $tag = '${{ github.ref_name }}'
+          if ($tag -ne "v$version") {
+            Write-Host "::error::Tag '$tag' does not match Cargo.toml version '$version' (expected 'v$version')."
+            exit 1
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "prerelease=$(($version -match '-').ToString().ToLower())" >> $env:GITHUB_OUTPUT
+          Write-Host "Releasing Toggle Audio $version"
+
+      - name: cargo test
+        run: cargo test --locked
+
+      - name: cargo build --release
+        run: cargo build --release --locked
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 9.0.x
+
+      # Same WiX setup as ci.yml (OSMF EULA v1.1, see docs/research/packaging.md section 2).
+      - name: Install WiX Toolset 7
+        run: |
+          dotnet tool install --global wix --version 7.0.0
+          wix eula accept wix7
+          wix extension add -g WixToolset.UI.wixext/7.0.0
+          wix extension add -g WixToolset.Util.wixext/7.0.0
+          wix --version
+
+      # Reads the version from Cargo.toml and writes
+      # installer/out/toggle-audio-<version>-x64.msi.
+      - name: Build MSI
+        run: ./installer/build-msi.ps1
+
+      - name: Stage release assets
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $v = $env:VERSION
+          $dist = New-Item -ItemType Directory -Force dist
+
+          # MSI
+          $msiName = "toggle-audio-$v-x64.msi"
+          if (-not (Test-Path "installer/out/$msiName")) {
+            throw "Expected installer/out/$msiName; found: $((Get-ChildItem installer/out -ErrorAction SilentlyContinue).Name -join ', ')"
+          }
+          wix msi validate "installer/out/$msiName"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          Copy-Item "installer/out/$msiName" $dist
+
+          # Portable zip: both exes + LICENSE + README.md at the zip root
+          $stage = New-Item -ItemType Directory -Force "stage/toggle-audio-$v-x64"
+          Copy-Item target/release/toggle-audio.exe, target/release/toggle-audiow.exe, LICENSE, README.md $stage
+          Compress-Archive -Path "$stage/*" -DestinationPath "$dist/toggle-audio-$v-x64.zip" -CompressionLevel Optimal
+
+          # SHA256SUMS.txt in sha256sum format (lowercase hash, two spaces, name; LF; ASCII)
+          $lines = Get-ChildItem $dist -File | Sort-Object Name | ForEach-Object {
+            "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)"
+          }
+          [IO.File]::WriteAllText("$($dist.FullName)/SHA256SUMS.txt", (($lines -join "`n") + "`n"), [Text.Encoding]::ASCII)
+          Get-Content "$dist/SHA256SUMS.txt"
+
+      - name: Extract release notes from CHANGELOG.md
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          # Takes the "## [<version>]" section of CHANGELOG.md (Keep a Changelog).
+          # GitHub's generated notes (PR list) are appended below it.
+          $notes = ''
+          if (Test-Path CHANGELOG.md) {
+            $inSection = $false
+            $buf = foreach ($line in Get-Content CHANGELOG.md -Encoding utf8) {
+              if ($line -match '^## \[') {
+                if ($inSection) { break }
+                $inSection = $line -match ('^## \[' + [regex]::Escape($env:VERSION) + '\]')
+                continue
+              }
+              if ($inSection -and $line -notmatch '^\[[^\]]+\]:\s') { $line }
+            }
+            $notes = ($buf -join "`n").Trim()
+          }
+          if (-not $notes) { Write-Host "::warning::No CHANGELOG.md section for $env:VERSION; using generated notes only." }
+          [IO.File]::WriteAllText("$PWD/release-notes.md", $notes + "`n", [Text.UTF8Encoding]::new($false))
+
+      # Optional supply-chain metadata; verify with
+      #   gh attestation verify <file> --repo hotdogee/toggle-audio
+      # Kept non-blocking: attestations are unavailable for private repos on
+      # free plans, and a Sigstore outage must not block a release.
+      - uses: actions/attest-build-provenance@v4
+        continue-on-error: true
+        with:
+          subject-path: |
+            target/release/toggle-audio.exe
+            target/release/toggle-audiow.exe
+            dist/*.msi
+            dist/*.zip
+
+      - uses: softprops/action-gh-release@v3
+        with:
+          name: Toggle Audio ${{ steps.version.outputs.version }}
+          body_path: release-notes.md
+          generate_release_notes: true
+          prerelease: ${{ steps.version.outputs.prerelease == 'true' }}
+          fail_on_unmatched_files: true
+          files: |
+            dist/toggle-audio-${{ steps.version.outputs.version }}-x64.msi
+            dist/toggle-audio-${{ steps.version.outputs.version }}-x64.zip
+            dist/SHA256SUMS.txt
+
+      # Keep a copy on the workflow run as well (useful if publishing failed).
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: release-assets
+          path: dist/
+          if-no-files-found: ignore

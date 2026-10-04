@@ -1,0 +1,62 @@
+name: Feature request
+description: Suggest an improvement or a new capability.
+title: "feat: "
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Toggle Audio deliberately does one thing: flip the default playback device between two devices, fast, with no background process.
+        Tray icons, global hotkeys, per-app routing and recording devices are out of scope for v1 (see docs/DESIGN.md);
+        for those, SoundSwitch and EarTrumpet are great. Requests that keep the tool small and fast are the most likely to land.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and what gets in the way today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How should it work? Command-line flags, settings dialog changes, installer options, ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Workarounds or other tools you tried.
+
+  - type: dropdown
+    id: launched
+    attributes:
+      label: How do you launch Toggle Audio?
+      options:
+        - Logitech G HUB (Launch Application)
+        - Other macro software (Stream Deck, Razer Synapse, AutoHotkey, ...)
+        - Terminal (PowerShell, cmd, Windows Terminal)
+        - Start Menu (Toggle Audio Settings)
+        - Desktop or Explorer shortcut
+        - Other
+
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version and build
+      description: Optional; helps when the feature depends on the Windows version.
+      placeholder: Windows 11 Pro 24H2, build 26100
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched the existing issues and discussions for this request.
+          required: true
+        - label: I would be willing to open a pull request for this.
+          required: false

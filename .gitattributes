@@ -1,0 +1,29 @@
+# Normalize all text to LF in the repository and working tree by default
+* text=auto eol=lf
+
+# Windows-native formats keep CRLF
+*.ps1     text eol=crlf
+*.psm1    text eol=crlf
+*.bat     text eol=crlf
+*.cmd     text eol=crlf
+*.rc      text eol=crlf
+*.wxs     text eol=crlf
+*.wxl     text eol=crlf
+*.sln     text eol=crlf
+*.vcxproj text eol=crlf
+*.csproj  text eol=crlf
+
+# Binaries
+*.ico binary
+*.png binary
+*.gif binary
+*.bmp binary
+*.jpg binary
+*.rtf binary
+*.msi binary
+*.exe binary
+*.dll binary
+*.zip binary
+
+# Research notes are documentation, not code, for GitHub language stats
+docs/research/* linguist-documentation

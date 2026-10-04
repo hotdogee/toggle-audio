@@ -1,0 +1,56 @@
+# Dependabot version updates. Commit prefixes follow Conventional Commits.
+version: 2
+updates:
+  # Product crate (root). windows and windows-core are pinned with "=" and must
+  # move together, so they are grouped into one PR.
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      windows-rs:
+        patterns:
+          - "windows*"
+    commit-message:
+      prefix: build
+      include: scope
+
+  # Standalone Rust benchmark crate (excluded from the root workspace, own lock file).
+  - package-ecosystem: cargo
+    directory: /bench/rust
+    schedule:
+      interval: weekly
+    groups:
+      windows-rs:
+        patterns:
+          - "windows*"
+    commit-message:
+      prefix: build
+      include: scope
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: ci
+
+  - package-ecosystem: gomod
+    directory: /bench/go
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
+      include: scope
+
+  - package-ecosystem: nuget
+    directory: /bench/csharp
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
+      include: scope
