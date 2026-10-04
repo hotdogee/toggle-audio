@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SignPath artifact configuration for Toggle Audio.
+
+  This is the reviewed copy. SignPath does not read it from the repository: the
+  active copy is the default artifact configuration of the SignPath project
+  (app.signpath.io > Projects > toggle-audio > Artifact configurations). Keep the
+  two identical; installer/signpath/README.md explains how to upload it.
+
+  What gets signed (one signing request per release, one manual approval):
+    The artifact is the GitHub Actions artifact "signpath-unsigned-msi" that
+    .github/workflows/release.yml uploads with actions/upload-artifact. That
+    action stores a ZIP, so the root element is <zip-file>. The ZIP holds one
+    file at its root: toggle-audio-<version>-x64.msi, built by WiX from the
+    UNSIGNED executables.
+    SignPath deep-signs the MSI: it extracts the MSI, signs toggle-audio.exe and
+    toggle-audiow.exe inside it, repacks it and then signs the MSI itself
+    (https://docs.signpath.io/artifact-configuration/syntax, "signing these files
+    and their contents in a single step"). The release workflow then extracts the
+    signed executables from the signed MSI (msiexec /a) for the portable zip, so
+    the zip, the MSI and the attestation all carry the same signed executables.
+
+  Paths inside the MSI follow its Directory table as an administrative install
+  lays it out: installer/toggle-audio.wxs puts INSTALLFOLDER ("Toggle Audio")
+  under ProgramFiles64Folder, whose short name is PFiles64. Checked with
+  "msiexec /a" on the v0.1.0 MSI. Paths are case-insensitive.
+
+  Metadata restrictions (the SignPath Foundation terms require product name and
+  product version to be enforced, https://signpath.org/terms.html):
+    - PE files: ProductName "Toggle Audio", ProductVersion = ${version},
+      CompanyName "Han Lin" and OriginalFilename, all set by assets/app.rc and
+      assets/app-windowed.rc from Cargo.toml.
+    - MSI: Subject (WiX SummaryInformation Description "Toggle Audio <version>
+      installer") and Author (WiX Package Manufacturer "Han Lin").
+
+  Parameter "version" is passed by release.yml ("parameters: version: ...") and
+  equals the tag without the "v", the Cargo.toml version and the MSI
+  ProductVersion, for example 0.2.0.
+
+  Element reference: https://docs.signpath.io/artifact-configuration/reference
+  Examples:          https://docs.signpath.io/artifact-configuration/examples
+-->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <parameters>
+    <parameter name="version" required="true" />
+  </parameters>
+  <zip-file>
+    <!-- File name must match release.yml: installer/out/toggle-audio-<version>-x64.msi -->
+    <msi-file path="toggle-audio-${version}-x64.msi"
+              subject="Toggle Audio ${version} installer"
+              author="Han Lin">
+      <directory path="PFiles64/Toggle Audio">
+        <pe-file-set product-name="Toggle Audio" product-version="${version}" company-name="Han Lin">
+          <include path="toggle-audio.exe" original-filename="toggle-audio.exe" />
+          <include path="toggle-audiow.exe" original-filename="toggle-audiow.exe" />
+          <!-- SHA-256 file digest and an RFC 3161 timestamp are SignPath's defaults. -->
+          <for-each>
+            <authenticode-sign description="Toggle Audio" description-url="https://github.com/hotdogee/toggle-audio" />
+          </for-each>
+        </pe-file-set>
+      </directory>
+      <!-- Signed last, after its contents were signed and repacked. -->
+      <authenticode-sign description="Toggle Audio" description-url="https://github.com/hotdogee/toggle-audio" />
+    </msi-file>
+  </zip-file>
+</artifact-configuration>

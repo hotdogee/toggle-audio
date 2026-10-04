@@ -1,24 +1,63 @@
 # Release pipeline: push a tag vX.Y.Z (equal to the Cargo.toml version) to
-# build the exes and the MSI, package a portable zip, write SHA256SUMS.txt,
-# attest build provenance and publish a GitHub Release.
+# build the exes and the MSI, code-sign them through SignPath Foundation (when
+# configured), package a portable zip, write SHA256SUMS.txt, attest build
+# provenance and publish a GitHub Release.
 #
-# Action versions are pinned to major tags; latest releases checked 2026-10-04:
+# Code signing (docs/signing.md):
+#   - The repository variable SIGNPATH_SIGNING_POLICY_SLUG is the on/off
+#     switch. Empty or missing: the release is built and published unsigned,
+#     as before. Set: the SIGNPATH_API_TOKEN secret and the
+#     SIGNPATH_ORGANIZATION_ID and SIGNPATH_PROJECT_SLUG variables must be set
+#     too, or the run fails before building anything.
+#   - When enabled, the unsigned MSI is uploaded as a workflow artifact and
+#     submitted to SignPath, which signs both exes inside it and then the MSI
+#     (installer/signpath/artifact-configuration.xml). Every request waits for
+#     a manual approval in SignPath. The signed exes are then extracted from the
+#     signed MSI, so the MSI, the portable zip, SHA256SUMS.txt and the
+#     attestation all cover the same signed bytes.
+#   - Run the workflow by hand (workflow_dispatch) for a dry run: it builds,
+#     signs with the test-signing policy only (this works before the switch
+#     variable is set) and keeps the results as the "release-assets" workflow
+#     artifact, but attests and publishes nothing. A dry run can never use the
+#     release signing policy, so trusted signed files come only from tag
+#     pushes and are published on GitHub Releases.
+#   - Two jobs keep write access away from SignPath: "build" (contents: read,
+#     actions: read) builds, signs, verifies and stages; "publish" (tag pushes
+#     only; contents, attestations and id-token: write) attests and publishes
+#     what "build" uploaded. The SignPath action and SignPath's GitHub
+#     connector only ever receive the read-only token of the "build" job.
+#
+# GitHub-owned actions are pinned to major tags. Third-party actions, which
+# run next to the SignPath API token or the write token, are pinned to commit
+# SHAs (Dependabot updates the tagged ones). Latest releases checked 2026-10-05:
 #   actions/checkout v7, actions/setup-dotnet v6, actions/upload-artifact v7,
-#   actions/attest-build-provenance v4, softprops/action-gh-release v3,
-#   dtolnay/rust-toolchain (stable branch).
+#   actions/download-artifact v8, actions/attest-build-provenance v4,
+#   softprops/action-gh-release v3.0.3,
+#   signpath/github-action-submit-signing-request v3.0,
+#   dtolnay/rust-toolchain (stable branch; pinned to its head commit, which
+#   Dependabot does not bump, so refresh it by hand now and then).
 # No build cache is used here on purpose: release binaries are built from a
-# clean target directory.
+# clean target directory, and SignPath's origin verification for open-source
+# projects requires uncached builds on GitHub-hosted runners.
 
 name: Release
 
 on:
   push:
     tags: ['v*']
+  # Dry run (SignPath onboarding, workflow changes): builds and signs with
+  # test-signing, never attests or publishes. See docs/signing.md, "Dry run".
+  workflow_dispatch:
+    inputs:
+      signing-policy-slug:
+        description: SignPath signing policy for this dry run (test-signing only; ignored when signing is not configured)
+        type: choice
+        options:
+          - test-signing
+        default: test-signing
 
-permissions:
-  contents: write       # create the release and upload assets
-  id-token: write       # build provenance (Sigstore OIDC)
-  attestations: write   # build provenance
+# Nothing by default; each job asks for what it needs.
+permissions: {}
 
 concurrency:
   group: release-${{ github.ref }}
@@ -32,22 +71,32 @@ defaults:
     shell: pwsh
 
 jobs:
-  release:
-    name: Build and publish
+  build:
+    name: Build and sign
     runs-on: windows-latest
+    permissions:
+      contents: read    # checkout
+      actions: read     # SignPath reads this workflow run and downloads the unsigned artifact
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v7
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
+        with:
+          toolchain: stable
 
       - name: Verify tag matches Cargo.toml version
         id: version
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
           $meta = cargo metadata --no-deps --format-version 1 --locked | ConvertFrom-Json
           $version = ($meta.packages | Where-Object name -eq 'toggle-audio').version
           if (-not $version) { throw 'Could not read the toggle-audio version from Cargo.toml' }
-          $tag = '${{ github.ref_name }}'
-          if ($tag -ne "v$version") {
+          $tag = $env:REF_NAME
+          # A dry run (workflow_dispatch) may run from any branch; only tag pushes publish.
+          if ($env:GITHUB_EVENT_NAME -eq 'push' -and $tag -ne "v$version") {
             Write-Host "::error::Tag '$tag' does not match Cargo.toml version '$version' (expected 'v$version')."
             exit 1
           }
@@ -59,6 +108,54 @@ jobs:
           }
           "version=$version" >> $env:GITHUB_OUTPUT
           Write-Host "Releasing Toggle Audio $version"
+
+      # Decides whether this run signs. Secrets cannot be used in an "if:", so
+      # this step checks them and exports plain outputs that later steps test:
+      #   enabled  'true' or 'false'
+      #   policy   the SignPath signing policy slug to submit to
+      #   bin-dir  where the shipped exes come from: target/release (unsigned)
+      #            or signed-bin (extracted from the signed MSI)
+      # Tag push: signs when vars.SIGNPATH_SIGNING_POLICY_SLUG is set.
+      # Dry run:  signs with the run's input policy (test-signing) when the
+      #           SignPath connection settings exist, so a test-signing dry run
+      #           works while tag releases are still unsigned. A dry run never
+      #           falls back to the release policy and refuses it: its output
+      #           is a downloadable workflow artifact, and trusted signed files
+      #           must only come from tags (docs/signing.md, "Dry run").
+      # It runs before the build so that a half-finished configuration fails
+      # in seconds. The token is only tested for presence, never printed.
+      - name: Check code signing configuration
+        id: signing
+        env:
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+          SIGNPATH_ORGANIZATION_ID: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          SIGNPATH_PROJECT_SLUG: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          SIGNPATH_SIGNING_POLICY_SLUG: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          DRY_RUN_POLICY: ${{ inputs.signing-policy-slug }}
+        run: |
+          $dryRun = $env:GITHUB_EVENT_NAME -eq 'workflow_dispatch'
+          $policy = if (-not $dryRun) { $env:SIGNPATH_SIGNING_POLICY_SLUG } elseif ($env:DRY_RUN_POLICY) { $env:DRY_RUN_POLICY } else { 'test-signing' }
+          if ($dryRun -and ($policy -eq 'release-signing' -or ($env:SIGNPATH_SIGNING_POLICY_SLUG -and $policy -eq $env:SIGNPATH_SIGNING_POLICY_SLUG))) {
+            Write-Host "::error::A dry run cannot use the release signing policy '$policy': its trusted-signed files would never be published. Use test-signing (docs/signing.md, Dry run)."
+            exit 1
+          }
+          $connection = 'SIGNPATH_API_TOKEN', 'SIGNPATH_ORGANIZATION_ID', 'SIGNPATH_PROJECT_SLUG'
+          $missing = @($connection | Where-Object { -not [Environment]::GetEnvironmentVariable($_) })
+          if (-not $policy -or ($dryRun -and $missing.Count -eq $connection.Count)) {
+            Write-Host "::notice::Code signing is off (SIGNPATH_SIGNING_POLICY_SLUG or the SignPath settings are not set, see docs/signing.md); this build is unsigned."
+            "enabled=false" >> $env:GITHUB_OUTPUT
+            "bin-dir=target/release" >> $env:GITHUB_OUTPUT
+            exit 0
+          }
+          if ($missing.Count) {
+            $hint = if ($dryRun) { 'Add them, or remove all of them for an unsigned dry run' } else { 'Add them, or delete the SIGNPATH_SIGNING_POLICY_SLUG variable for an unsigned release' }
+            Write-Host "::error::Code signing is on (signing policy '$policy') but these are not set: $($missing -join ', '). $hint (docs/signing.md)."
+            exit 1
+          }
+          Write-Host "Code signing enabled: project '$env:SIGNPATH_PROJECT_SLUG', signing policy '$policy'$(if ($dryRun) { ' (dry run)' })."
+          "enabled=true" >> $env:GITHUB_OUTPUT
+          "policy=$policy" >> $env:GITHUB_OUTPUT
+          "bin-dir=signed-bin" >> $env:GITHUB_OUTPUT
 
       - name: cargo test
         run: cargo test --locked
@@ -87,9 +184,132 @@ jobs:
       - name: Build MSI
         run: ./installer/build-msi.ps1 -SkipBuild
 
+      # ---- Code signing (SignPath Foundation) ----
+      # Every step from here to "Stage release assets" is skipped when signing
+      # is not configured.
+
+      # SignPath signs only files stored as an artifact of this workflow run
+      # (origin verification). upload-artifact zips the MSI, which is why the
+      # artifact configuration's root element is <zip-file>. The name must not
+      # clash with "release-assets" below.
+      - name: Upload unsigned MSI for signing
+        id: upload-unsigned
+        if: steps.signing.outputs.enabled == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: signpath-unsigned-msi
+          path: installer/out/toggle-audio-${{ steps.version.outputs.version }}-x64.msi
+          if-no-files-found: error
+          retention-days: 1
+          overwrite: true   # a re-run of the job uploads it again
+
+      # Submits the MSI to SignPath and waits. Once the request is approved by
+      # hand in the SignPath web app (approvers get an email), SignPath signs
+      # both exes inside the MSI, repacks it and signs the MSI. The job waits up
+      # to an hour and fails if the request is denied, fails or times out, so
+      # nothing is published unsigned while signing is configured.
+      - name: Submit signing request to SignPath
+        id: sign
+        if: steps.signing.outputs.enabled == 'true'
+        uses: signpath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092 # v3.0
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ steps.signing.outputs.policy }}
+          github-artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: signed
+          parameters: |
+            version: "${{ steps.version.outputs.version }}"
+
+      # Replaces the unsigned MSI with the signed one and extracts the signed
+      # exes for the portable zip. "msiexec /a" (administrative install) only
+      # unpacks the payload; nothing is installed on the runner.
+      - name: Use the signed MSI and extract its signed executables
+        if: steps.signing.outputs.enabled == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $msiName = "toggle-audio-$env:VERSION-x64.msi"
+          if (-not (Test-Path "signed/$msiName")) {
+            throw "SignPath returned no signed/$msiName; found: $((Get-ChildItem signed -Recurse -File -ErrorAction SilentlyContinue).Name -join ', ')"
+          }
+          Copy-Item "signed/$msiName" "installer/out/$msiName" -Force
+          # build-msi.ps1 wrote this for the unsigned MSI. It is not shipped;
+          # drop it rather than keep a checksum that no longer matches.
+          Remove-Item "installer/out/$msiName.sha256" -ErrorAction SilentlyContinue
+
+          $admin = Join-Path $env:RUNNER_TEMP 'msi-admin'
+          $msiPath = (Resolve-Path "installer/out/$msiName").Path
+          $p = Start-Process msiexec.exe -Wait -PassThru -ArgumentList "/a `"$msiPath`" /qn TARGETDIR=`"$admin`""
+          if ($p.ExitCode -ne 0) { throw "msiexec /a failed with exit code $($p.ExitCode)" }
+          # PFiles64/Toggle Audio = ProgramFiles64Folder/INSTALLFOLDER in installer/toggle-audio.wxs
+          $bin = New-Item -ItemType Directory -Force signed-bin
+          Copy-Item "$admin/PFiles64/Toggle Audio/toggle-audio.exe", "$admin/PFiles64/Toggle Audio/toggle-audiow.exe" $bin
+
+      # Checks the files that will ship, before any hash or attestation is
+      # written. A tag push requires, on all three files, a valid timestamped
+      # signature whose signer subject starts exactly with
+      # "CN=SignPath Foundation, O=SignPath Foundation, ", all from the same
+      # certificate (one thumbprint). A dry run (with the untrusted
+      # test-signing certificate) only requires that each file is signed and
+      # reports the rest as warnings. It also re-checks the identity of the
+      # MSI, which SignPath repacked.
+      - name: Verify Authenticode signatures
+        if: steps.signing.outputs.enabled == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $strict = $env:GITHUB_EVENT_NAME -eq 'push'
+          $msiPath = (Resolve-Path "installer/out/toggle-audio-$env:VERSION-x64.msi").Path
+          $files = @($msiPath) + (Resolve-Path signed-bin/toggle-audio.exe, signed-bin/toggle-audiow.exe).Path
+          $failed = $false
+          $thumbprints = @()
+          foreach ($f in $files) {
+            $s = Get-AuthenticodeSignature -LiteralPath $f
+            $name = [IO.Path]::GetFileName($f)
+            Write-Host "${name}: $($s.Status); signer: $($s.SignerCertificate.Subject); thumbprint: $($s.SignerCertificate.Thumbprint); timestamp: $($s.TimeStamperCertificate.Subject)"
+            $problems = @()
+            if ($s.Status -eq 'NotSigned') { Write-Host "::error file=$name::not signed"; $failed = $true; continue }
+            if ($s.Status -ne 'Valid') { $problems += "status $($s.Status): $($s.StatusMessage)" }
+            if (-not ($s.SignerCertificate -and $s.SignerCertificate.Subject.StartsWith('CN=SignPath Foundation, O=SignPath Foundation, ', [StringComparison]::Ordinal))) { $problems += "unexpected signer $($s.SignerCertificate.Subject)" }
+            if (-not $s.TimeStamperCertificate) { $problems += 'no timestamp' }
+            $thumbprints += $s.SignerCertificate.Thumbprint
+            foreach ($problem in $problems) {
+              if ($strict) { Write-Host "::error file=$name::$problem"; $failed = $true }
+              else { Write-Host "::warning file=$name::$problem (dry run)" }
+            }
+          }
+          $distinct = @($thumbprints | Sort-Object -Unique)
+          if ($distinct.Count -gt 1) {
+            $problem = "the three files are signed with different certificates ($($distinct -join ', '))"
+            if ($strict) { Write-Host "::error::$problem"; $failed = $true } else { Write-Host "::warning::$problem (dry run)" }
+          }
+
+          # The repacked MSI must keep the identity that upgrades rely on (docs/packaging.md).
+          $installer = New-Object -ComObject WindowsInstaller.Installer
+          $db = $installer.OpenDatabase($msiPath, 0)   # 0 = read-only
+          $props = @{}
+          $view = $db.OpenView("SELECT ``Property``, ``Value`` FROM ``Property`` WHERE ``Property`` = 'ProductVersion' OR ``Property`` = 'UpgradeCode'")
+          $view.Execute()
+          while ($r = $view.Fetch()) { $props[$r.StringData(1)] = $r.StringData(2) }
+          $view.Close()
+          if ($props['ProductVersion'] -ne $env:VERSION) { Write-Host "::error::Signed MSI ProductVersion is '$($props['ProductVersion'])', expected '$env:VERSION'."; $failed = $true }
+          if ($props['UpgradeCode'] -ne '{C82A4013-F2FF-448E-A4AE-63CD73760A63}') { Write-Host "::error::Signed MSI UpgradeCode is '$($props['UpgradeCode'])'; it must never change."; $failed = $true }
+          if ($failed) { exit 1 }
+
+      # ---- End of code signing ----
+
+      # The exes come from bin-dir: target/release when unsigned, signed-bin
+      # (extracted from the signed MSI) when signed. Hashes are written last.
       - name: Stage release assets
         env:
           VERSION: ${{ steps.version.outputs.version }}
+          BIN_DIR: ${{ steps.signing.outputs.bin-dir }}
         run: |
           $ErrorActionPreference = 'Stop'
           $v = $env:VERSION
@@ -106,8 +326,12 @@ jobs:
 
           # Portable zip: both exes + LICENSE + THIRD-PARTY-NOTICES.txt + README.md at the zip root
           $stage = New-Item -ItemType Directory -Force "stage/toggle-audio-$v-x64"
-          Copy-Item target/release/toggle-audio.exe, target/release/toggle-audiow.exe, LICENSE, THIRD-PARTY-NOTICES.txt, README.md $stage
+          Copy-Item "$env:BIN_DIR/toggle-audio.exe", "$env:BIN_DIR/toggle-audiow.exe", LICENSE, THIRD-PARTY-NOTICES.txt, README.md $stage
           Compress-Archive -Path "$stage/*" -DestinationPath "$dist/toggle-audio-$v-x64.zip" -CompressionLevel Optimal
+
+          # The shipped exes, attestation subjects in the "publish" job
+          $pubBin = New-Item -ItemType Directory -Force publish/bin
+          Copy-Item "$env:BIN_DIR/toggle-audio.exe", "$env:BIN_DIR/toggle-audiow.exe" $pubBin
 
           # SHA256SUMS.txt in sha256sum format (lowercase hash, two spaces, name; LF; ASCII)
           $lines = Get-ChildItem $dist -File | Sort-Object Name | ForEach-Object {
@@ -119,9 +343,12 @@ jobs:
       - name: Extract release notes from CHANGELOG.md
         env:
           VERSION: ${{ steps.version.outputs.version }}
+          SIGNED: ${{ steps.signing.outputs.enabled }}
+          POLICY_URL: ${{ github.server_url }}/${{ github.repository }}#code-signing-policy
         run: |
-          # Takes the "## [<version>]" section of CHANGELOG.md (Keep a Changelog).
-          # GitHub's generated notes (PR list) are appended below it.
+          # Takes the "## [<version>]" section of CHANGELOG.md (Keep a Changelog),
+          # then adds the code signing line that SignPath Foundation requires on
+          # every release page. GitHub's generated notes (PR list) follow it.
           $notes = ''
           if (Test-Path CHANGELOG.md) {
             $inSection = $false
@@ -136,36 +363,84 @@ jobs:
             $notes = ($buf -join "`n").Trim()
           }
           if (-not $notes) { Write-Host "::warning::No CHANGELOG.md section for $env:VERSION; using generated notes only." }
-          [IO.File]::WriteAllText("$PWD/release-notes.md", $notes + "`n", [Text.UTF8Encoding]::new($false))
+          $signing = if ($env:SIGNED -eq 'true') {
+            "**Signed with SignPath Foundation certificate.** The MSI and both executables carry an Authenticode signature. Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org). See the [Code signing policy]($env:POLICY_URL)."
+          } else {
+            "**Unsigned release.** Verify the downloads against SHA256SUMS.txt. See the [Code signing policy]($env:POLICY_URL)."
+          }
+          $notes = (@($notes, $signing) | Where-Object { $_ }) -join "`n`n"
+          New-Item -ItemType Directory -Force publish | Out-Null
+          [IO.File]::WriteAllText("$PWD/publish/release-notes.md", $notes + "`n", [Text.UTF8Encoding]::new($false))
 
-      # Optional supply-chain metadata; verify with
-      #   gh attestation verify <file> --repo hotdogee/toggle-audio
-      # Kept non-blocking: attestations are unavailable for private repos on
-      # free plans, and a Sigstore outage must not block a release.
-      - uses: actions/attest-build-provenance@v4
-        continue-on-error: true
-        with:
-          subject-path: |
-            target/release/toggle-audio.exe
-            target/release/toggle-audiow.exe
-            dist/*.msi
-            dist/*.zip
-
-      - uses: softprops/action-gh-release@v3
-        with:
-          name: Toggle Audio ${{ steps.version.outputs.version }}
-          body_path: release-notes.md
-          generate_release_notes: true
-          fail_on_unmatched_files: true
-          files: |
-            dist/toggle-audio-${{ steps.version.outputs.version }}-x64.msi
-            dist/toggle-audio-${{ steps.version.outputs.version }}-x64.zip
-            dist/SHA256SUMS.txt
-
-      # Keep a copy on the workflow run as well (useful if publishing failed).
-      - uses: actions/upload-artifact@v7
+      # The MSI, the zip and SHA256SUMS.txt: the release assets, and the only
+      # output of a dry run. Kept even if a later step or the publish job fails.
+      # overwrite: artifact names are unique per workflow run, and a re-run of
+      # this job uploads it again.
+      - name: Upload release assets
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: release-assets
           path: dist/
           if-no-files-found: ignore
+          overwrite: true
+
+      # The shipped exes (attestation subjects) and the release notes, for the
+      # publish job. Not needed in a dry run.
+      - name: Upload inputs of the publish job
+        uses: actions/upload-artifact@v7
+        if: github.event_name == 'push'
+        with:
+          name: release-publish
+          path: publish/
+          if-no-files-found: error
+          retention-days: 1
+          overwrite: true
+
+  # Tag pushes only. The only job with a write-scoped token: it runs no build
+  # tools and no SignPath code, and only attests and publishes the files that
+  # the build job verified.
+  publish:
+    name: Attest and publish
+    needs: build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write       # create the release and upload assets
+      id-token: write       # build provenance (Sigstore OIDC)
+      attestations: write   # build provenance
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-assets
+          path: dist
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-publish
+          path: publish
+
+      # Optional supply-chain metadata; verify with
+      #   gh attestation verify <file> --repo hotdogee/toggle-audio
+      # Kept non-blocking: attestations are unavailable for private repos on
+      # free plans, and a Sigstore outage must not block a release.
+      # The exe subjects are the shipped ones (signed when signing is enabled).
+      - uses: actions/attest-build-provenance@v4
+        continue-on-error: true
+        with:
+          subject-path: |
+            publish/bin/toggle-audio.exe
+            publish/bin/toggle-audiow.exe
+            dist/*.msi
+            dist/*.zip
+
+      - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          name: Toggle Audio ${{ needs.build.outputs.version }}
+          body_path: publish/release-notes.md
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            dist/toggle-audio-${{ needs.build.outputs.version }}-x64.msi
+            dist/toggle-audio-${{ needs.build.outputs.version }}-x64.zip
+            dist/SHA256SUMS.txt

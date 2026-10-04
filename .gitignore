@@ -22,7 +22,9 @@ installer/out/
 # Release workflow outputs (release.yml)
 /dist/
 /stage/
-/release-notes.md
+/publish/
+/signed/
+/signed-bin/
 # Editors / OS
 .vs/
 .vscode/

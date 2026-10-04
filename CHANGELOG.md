@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - winget manifests for `Hotdogee.ToggleAudio` under `installer/winget/` and a `winget` workflow that submits each new release to microsoft/winget-pkgs.
+- Code signing through SignPath Foundation, ready but not yet active: the release workflow submits the MSI to SignPath, which signs both executables inside it and the MSI, then builds the portable zip, `SHA256SUMS.txt` and the attestation from the signed files and checks every signature. It stays off until the SignPath secret and variables are set, so releases remain unsigned until then. A manual run of the workflow is a dry run that signs with SignPath's test certificate only and publishes nothing.
+- Code signing policy in the README, `docs/signing.md` (policy, release signing procedure, SignPath set-up) and the SignPath artifact configuration in `installer/signpath/`.
+- Release notes now state whether a release is signed ("Signed with SignPath Foundation certificate" or "Unsigned release") and link the code signing policy.
+
+### Changed
+
+- The release workflow is split into a read-only build-and-sign job and a publish job that alone holds write permissions, and its third-party actions are pinned to commit SHAs.
 
 ## [0.1.0] - 2026-10-04
 

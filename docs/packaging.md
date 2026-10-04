@@ -62,7 +62,7 @@ The script:
 
 Output: `installer/out/toggle-audio-<version>-x64.msi` (about 0.5 MB for 0.1.0). The `.wixpdb` beside it is debug data for the build; do not ship it.
 
-CI builds and validates the MSI on every push and pull request (`.github/workflows/ci.yml`, job `msi`). Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml`, which builds the MSI, the portable zip and `SHA256SUMS.txt` and publishes the GitHub Release.
+CI builds and validates the MSI on every push and pull request (`.github/workflows/ci.yml`, job `msi`). Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml`, which builds the MSI, signs it through SignPath when [code signing](signing.md) is configured, builds the portable zip and `SHA256SUMS.txt` and publishes the GitHub Release.
 
 ### Inspecting a package without installing it
 
@@ -86,10 +86,12 @@ while ($r = $v.Fetch()) { '{0} = {1}' -f $r.StringData(1), $r.StringData(2) }
 
 Download `toggle-audio-<version>-x64.msi` from [Releases](https://github.com/hotdogee/toggle-audio/releases) and run it. Installation is per machine, so Windows asks for administrator approval (UAC).
 
-The MSI is **not code-signed** yet, so:
+Releases so far are **not code-signed** (signing through SignPath Foundation is being set up; see [signing.md](signing.md)), so:
 
 - SmartScreen may show "Windows protected your PC". Choose **More info**, then **Run anyway**.
 - The UAC prompt shows **Publisher: Unknown**.
+
+Once releases are signed, the UAC prompt and SmartScreen show the publisher **SignPath Foundation**. SmartScreen can still warn about a new release until it has built up reputation.
 
 Verify the download first (next section) if you want to be sure the file is the one the release published.
 
@@ -150,9 +152,15 @@ Get-Content .\SHA256SUMS.txt
 gh attestation verify .\toggle-audio-0.1.0-x64.msi --repo hotdogee/toggle-audio
 ```
 
-### Why the MSI is unsigned
+A signed release can also be checked with `Get-AuthenticodeSignature .\toggle-audio-0.2.0-x64.msi` (expect `Status : Valid` and the signer `CN=SignPath Foundation, ...`); see [signing.md](signing.md#verifying-a-signature).
 
-No certificate gives instant SmartScreen trust any more, the individual tier of Azure Artifact Signing is limited to the USA and Canada, and commercial certificates cost a yearly fee and need an HSM. For v0.x the MSI is unsigned and the SHA256 sums and provenance attestation are the integrity check. The planned route is [SignPath Foundation](https://signpath.org/), which signs open-source projects for free once a public release and a signing policy exist. When signing arrives, the order is: sign both exes, build the MSI, sign the MSI, then compute the hashes.
+### Code signing
+
+No certificate gives instant SmartScreen trust any more, the individual tier of Azure Artifact Signing is limited to the USA and Canada, and commercial certificates cost a yearly fee and need an HSM. The chosen route is [SignPath Foundation](https://signpath.org/), which signs open-source projects for free. Until it accepts the project, releases are unsigned and the SHA256 sums and provenance attestation are the integrity check.
+
+The release workflow is already prepared and switches signing on as soon as the SignPath secret and variables exist. The order is then: build both exes, build the MSI from the **unsigned** exes, have SignPath sign the exes inside the MSI and then the MSI (one request, one manual approval), extract the signed exes from the signed MSI with `msiexec /a` for the portable zip, and only then compute the hashes and attestations. [signing.md](signing.md) has the policy, the maintainer's release procedure, the SignPath set-up and the artifact configuration ([`installer/signpath/`](../installer/signpath/)). The research behind it is in [research/signpath.md](research/signpath.md).
+
+Because SignPath repacks the MSI, the workflow checks the signed MSI again (signatures, ProductVersion, UpgradeCode and `wix msi validate`). Test the first signed MSI with a real install, upgrade and uninstall ([Testing a real install](#testing-a-real-install)).
 
 ## Identity rules (do not break these)
 

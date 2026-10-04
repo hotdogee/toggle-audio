@@ -24,6 +24,7 @@ Toggle Audio does one thing: each run switches the Windows default playback devi
 - [Compatibility](#compatibility)
 - [Troubleshooting](#troubleshooting)
 - [Related tools](#related-tools)
+- [Code signing policy](#code-signing-policy)
 - [Contributing](#contributing), [License](#license), [Acknowledgments](#acknowledgments)
 
 ## Features
@@ -51,7 +52,7 @@ Toggle Audio does one thing: each run switches the Windows default playback devi
    - the install folder on the system `PATH` (the **Add to PATH** feature, on by default; you can turn it off in the Custom Setup step).
 
 > [!NOTE]
-> The binaries and the MSI are **not code-signed yet**. SmartScreen may say "Windows protected your PC": click **More info**, then **Run anyway**. The UAC prompt shows "Publisher: Unknown".
+> Releases so far, including 0.1.0, are **not code-signed**: code signing through SignPath Foundation is being set up ([Code signing policy](#code-signing-policy)). SmartScreen may say "Windows protected your PC": click **More info**, then **Run anyway**. The UAC prompt shows "Publisher: Unknown". The release notes of every release say whether it is signed.
 
 **Verify the download.** Each release publishes `SHA256SUMS.txt` next to the MSI and the zip. The two values must match:
 
@@ -311,7 +312,7 @@ Full results, method and caveats are in [docs/benchmarks.md](docs/benchmarks.md)
 | --- | --- |
 | A device shows as **"(not connected)"** in Settings | Windows reports it as unplugged, off or disabled. Turn it on, or check Sound settings > All sound devices. If it is connected but still listed that way, Windows has created a new endpoint for it (after a driver reinstall or a different USB port): choose it again and Save. |
 | A hotkey press shows an **error message box** | The message names the problem. "nothing to switch to" means that neither configured device is available. A missing or broken configuration opens Settings instead: choose the devices, Save, and press the key again (that press does not toggle). |
-| **SmartScreen** blocks the MSI or the exe | The binaries are not signed yet. Click **More info > Run anyway**, after you have checked the hash against `SHA256SUMS.txt` ([Install](#install)). |
+| **SmartScreen** blocks the MSI or the exe | Releases so far are unsigned ([Code signing policy](#code-signing-policy)). Click **More info > Run anyway**, after you have checked the hash against `SHA256SUMS.txt` ([Install](#install)). A signed release can still get this warning for a while after it is published, until SmartScreen has seen enough clean installs. |
 | **A console window flashes** on each G HUB press | You are on Windows 10 or Windows 11 before 24H2. Bind `toggle-audiow.exe` instead of `toggle-audio.exe`. |
 | Device names show as `?` or garbled text in `toggle-audio list \| ...` | When PowerShell pipes a native program's output, it decodes it with the console code page, so on a non-UTF-8 code page (for example Traditional Chinese, 950) CJK names break. Run `[Console]::OutputEncoding = [Text.UTF8Encoding]::new()` first. Output redirected to a file (`> devices.txt`) is always UTF-8, and plain console output is always correct. Endpoint ids are ASCII, so have scripts match on ids rather than names. |
 | PowerShell does not wait for `toggle-audiow.exe` or capture its output | That is how PowerShell treats GUI-subsystem programs. Use `toggle-audio.exe` in scripts (`cmd /c` does wait for `toggle-audiow.exe`). |
@@ -332,9 +333,34 @@ Toggle Audio is deliberately minimal. These tools may fit you better:
 | [SoundVolumeView](https://www.nirsoft.net/utils/sound_volume_view.html) | You need full control over every endpoint (volumes, per-app routing, recording devices) from a GUI or the command line. Its `/SwitchDefault` also alternates two devices. Closed source. |
 | [AudioDeviceCmdlets](https://github.com/frgnca/AudioDeviceCmdlets) | You are already in a PowerShell script and a few hundred ms per call does not matter. |
 
+## Code signing policy
+
+> [!IMPORTANT]
+> **Not in effect yet.** No release has been signed so far: 0.1.0 and any release whose notes say "Unsigned release" are unsigned, and the SHA-256 sums are their integrity check. Signed releases start once SignPath Foundation accepts the project, and their release notes say "Signed with SignPath Foundation certificate". This note goes away with the first signed release.
+
+Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+
+| Role | Members |
+| --- | --- |
+| Committers and reviewers | [Han Lin (@hotdogee)](https://github.com/hotdogee) |
+| Approvers | [Han Lin (@hotdogee)](https://github.com/hotdogee) |
+
+- **What is signed:** the MSI and both executables, `toggle-audio.exe` and `toggle-audiow.exe` (the same signed files are in the MSI and in the portable zip).
+- **How releases are built:** only by the [release workflow](.github/workflows/release.yml) in GitHub Actions, on GitHub-hosted runners, from a tagged commit of this repository. Files are signed only through that workflow, and every release-signing request is approved by hand in SignPath. Manual test runs of the workflow can only use SignPath's untrusted test certificate. Nothing is signed on a personal computer.
+- **Where signed files are published:** [GitHub Releases](https://github.com/hotdogee/toggle-audio/releases) of this repository (and winget, which downloads from there).
+- **Privacy policy:** This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. In fact Toggle Audio makes no network connections at all, not even on request. The only file it writes is `%APPDATA%\toggle-audio\config.json`, and only when you save in the settings dialog.
+
+**Verify a signature** (PowerShell; use the file name you downloaded):
+
+```powershell
+Get-AuthenticodeSignature .\toggle-audio-0.2.0-x64.msi | Format-List Status, SignerCertificate, TimeStamperCertificate
+```
+
+A signed release shows `Status : Valid` and the signer `CN=SignPath Foundation, O=SignPath Foundation, L=Lewes, S=Delaware, C=US`, with a timestamp. The same works for both exes, and Explorer shows it under **Properties > Digital Signatures**. Windows names the publisher "SignPath Foundation", not Han Lin. The full policy, the release procedure and the details are in [docs/signing.md](docs/signing.md).
+
 ## Contributing
 
-Bug reports, compatibility notes, benchmark numbers from other machines and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the development setup, checks and commit conventions, and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Report security issues privately as described in [SECURITY.md](SECURITY.md). Changes are listed in [CHANGELOG.md](CHANGELOG.md).
+Bug reports, compatibility notes, benchmark numbers from other machines and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the development setup, checks and commit conventions, and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Report security issues privately as described in [SECURITY.md](SECURITY.md). Changes are listed in [CHANGELOG.md](CHANGELOG.md). How releases are signed is described in [docs/signing.md](docs/signing.md).
 
 ## License
 
