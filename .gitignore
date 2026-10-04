@@ -19,6 +19,10 @@ installer/out/
 *.msi
 *.wixpdb
 *.wixobj
+# Release workflow outputs (release.yml)
+/dist/
+/stage/
+/release-notes.md
 # Editors / OS
 .vs/
 .vscode/

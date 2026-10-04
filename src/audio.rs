@@ -1,6 +1,6 @@
 //! Core Audio access: enumerate playback endpoints, read and set the default device.
 //!
-//! This is the only module besides [`crate::gui`] that works with Core Audio (`crate::config`
+//! This is the only module besides `crate::gui` that works with Core Audio (`crate::config`
 //! only frees one shell string with `CoTaskMemFree`). Everything goes through [`AudioSystem`],
 //! which owns the COM apartment (STA, `COINIT_DISABLE_OLE1DDE`) and the `IMMDeviceEnumerator`.
 //! Setting the default uses the undocumented `IPolicyConfig` interface (CLSID
@@ -69,12 +69,6 @@ impl Role {
             Self::Multimedia => eMultimedia,
             Self::Communications => eCommunications,
         }
-    }
-}
-
-impl From<Role> for ERole {
-    fn from(role: Role) -> Self {
-        role.to_erole()
     }
 }
 
@@ -209,6 +203,24 @@ impl AudioSystem {
         }
     }
 
+    /// Looks up playback endpoint `id` in any state and returns its id as Windows spells it
+    /// (`IMMDevice::GetId`) together with whether it is active, or `None` when the id is unknown,
+    /// malformed or names a recording endpoint.
+    ///
+    /// The toggle compares these ids with the current default, which is in Windows' own spelling:
+    /// a configured id that differs in case, or (on Windows 11 24H2+) is a stable id that
+    /// `GetDevice` also accepts, still matches.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Com`] for any other failure.
+    pub fn lookup(&self, id: &str) -> Result<Option<(String, bool)>> {
+        let Some(device) = self.device(id)? else {
+            return Ok(None);
+        };
+        Ok(Some((id_of(&device)?, is_device_active(&device)?)))
+    }
+
     /// The friendly name of playback endpoint `id` in any state (active or not), or `None` when
     /// the id is unknown, malformed or names a recording endpoint, or the endpoint has no friendly
     /// name.
@@ -241,6 +253,18 @@ impl AudioSystem {
     /// interface can be created or `SetDefaultEndpoint` fails through both (the error of the
     /// primary interface is reported). Roles before the failing one stay switched.
     pub fn set_default(&self, id: &str, roles: &[Role]) -> Result<bool> {
+        self.set_default_known(id, roles, None)
+    }
+
+    /// [`AudioSystem::set_default`] for a caller that has just read the default of one role:
+    /// `known` is that role and the id [`AudioSystem::default_id`] returned for it, which is used
+    /// instead of reading it again (each read is a call into the audio service, about 1 ms).
+    pub(crate) fn set_default_known(
+        &self,
+        id: &str,
+        roles: &[Role],
+        known: Option<(Role, Option<&str>)>,
+    ) -> Result<bool> {
         let device = self
             .device(id)?
             .ok_or_else(|| Error::DeviceNotFound(id.to_owned()))?;
@@ -261,8 +285,11 @@ impl AudioSystem {
         let mut policy: Option<PolicyConfig> = None;
         let mut changed = false;
         for &role in roles {
-            let current = self.default_id(role)?;
-            if current.is_some_and(|current| current.eq_ignore_ascii_case(&target)) {
+            let current = match known {
+                Some((known_role, known_id)) if known_role == role => known_id.map(str::to_owned),
+                _ => self.default_id(role)?,
+            };
+            if current.is_some_and(|current| same_endpoint_id(&current, &target)) {
                 continue;
             }
             let policy = match &mut policy {
@@ -319,6 +346,13 @@ impl AudioSystem {
     }
 }
 
+/// Whether two endpoint ids name the same endpoint. Ids are ASCII
+/// (`{0.0.0.00000000}.{guid}`) and Windows compares them case-insensitively.
+#[must_use]
+pub fn same_endpoint_id(a: &str, b: &str) -> bool {
+    a.eq_ignore_ascii_case(b)
+}
+
 /// Resolves the `set` argument against `endpoints` (normally [`AudioSystem::list_active`]).
 ///
 /// Leading and trailing whitespace in `query` is ignored. Tried in order, first hit wins:
@@ -342,7 +376,7 @@ pub fn resolve<'a>(endpoints: &'a [Endpoint], query: &str) -> Result<&'a Endpoin
     }
     if let Some(endpoint) = endpoints
         .iter()
-        .find(|endpoint| endpoint.id.eq_ignore_ascii_case(query))
+        .find(|endpoint| same_endpoint_id(&endpoint.id, query))
     {
         return Ok(endpoint);
     }
@@ -515,8 +549,8 @@ impl PolicyConfig {
 /// parameters purely to keep the vtable layout; the slot numbers were resolved against the public
 /// PDB symbols of AudioSes.dll 10.0.26100 (`docs/research/core-audio-api.md` section B.2).
 mod policy_config {
-    #![allow(non_snake_case, reason = "method names mirror the native COM vtable")]
-    #![allow(
+    #![expect(non_snake_case, reason = "method names mirror the native COM vtable")]
+    #![expect(
         clippy::transmute_ptr_to_ptr,
         reason = "emitted by the windows_core::interface macro expansion"
     )]
@@ -750,10 +784,9 @@ mod tests {
 
     #[test]
     fn roles_map_to_erole() {
-        assert_eq!(ERole::from(Role::Console), eConsole);
+        assert_eq!(Role::Console.to_erole(), eConsole);
         assert_eq!(Role::Multimedia.to_erole(), eMultimedia);
         assert_eq!(Role::Communications.to_erole(), eCommunications);
-        assert_eq!((eConsole.0, eMultimedia.0, eCommunications.0), (0, 1, 2));
     }
 
     #[test]

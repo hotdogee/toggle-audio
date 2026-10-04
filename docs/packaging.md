@@ -10,7 +10,7 @@ Sources: [`installer/toggle-audio.wxs`](../installer/toggle-audio.wxs), [`instal
 | --- | --- | --- |
 | `toggle-audio.exe` (console subsystem, for terminals and scripts) | `C:\Program Files\Toggle Audio\` | Main |
 | `toggle-audiow.exe` (GUI subsystem, never opens a console) | `C:\Program Files\Toggle Audio\` | Main |
-| `LICENSE.txt`, and `README.md` when it existed at build time | `C:\Program Files\Toggle Audio\` | Main |
+| `LICENSE.txt`, `THIRD-PARTY-NOTICES.txt`, and `README.md` when it existed at build time | `C:\Program Files\Toggle Audio\` | Main |
 | Start Menu shortcut **Toggle Audio Settings**, runs `toggle-audiow.exe settings` | all-users Start Menu (`%ProgramData%\Microsoft\Windows\Start Menu\Programs`) | Main |
 | App Paths keys for both exes, so Win+R and Start search find `toggle-audio` | `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\toggle-audio.exe` and `...\toggle-audiow.exe` | Main |
 | Install folder appended to the **system** `PATH` | `HKLM` environment | PathEnv ("Add to PATH", on by default) |
@@ -54,7 +54,7 @@ The script:
 
 1. reads `version` from the `[package]` table of `Cargo.toml` and requires a plain `MAJOR.MINOR.PATCH` version (MSI versions have no pre-release field; major and minor at most 255, patch at most 65535);
 2. checks that `installer/License.rtf` matches `LICENSE` (regenerate it with `.\installer\make-license-rtf.ps1` after editing `LICENSE`);
-3. runs `cargo build --release --locked` from the repository root unless `-SkipBuild`, honouring `CARGO_TARGET_DIR` (cargo reads `.cargo/config.toml`, which links the C runtime statically, from the current directory), then fails if either exe imports `VCRUNTIME140.dll` or `api-ms-win-crt-*.dll`, so the package never needs the Visual C++ redistributable;
+3. runs `cargo build --release --locked` from the repository root unless `-SkipBuild`, honoring `CARGO_TARGET_DIR` (cargo reads `.cargo/config.toml`, which links the C runtime statically, from the current directory), then fails if either exe imports `VCRUNTIME140.dll` or `api-ms-win-crt-*.dll`, so the package never needs the Visual C++ redistributable;
 4. finds `wix.exe` on `PATH` or in `%USERPROFILE%\.dotnet\tools` and runs `wix build -arch x64` with the UI and Util extensions, passing `Version`, `BinDir` and, when `README.md` exists, `ReadmeFile`;
 5. runs `wix msi validate` (the standard ICE suite; no administrator rights needed);
 6. reads ProductVersion, UpgradeCode and ProductCode back from the package and fails if the first two are wrong;

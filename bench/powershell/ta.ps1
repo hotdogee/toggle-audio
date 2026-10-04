@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     PowerShell baseline for the toggle-audio bench CLI contract.
 

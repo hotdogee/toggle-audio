@@ -21,7 +21,7 @@
 //! cargo test --test real_device -- --ignored toggle_round_trip
 //! ```
 
-#![allow(
+#![expect(
     clippy::panic,
     clippy::expect_used,
     reason = "test helpers report failures by panicking, like the tests that call them"
@@ -112,7 +112,11 @@ fn every_role_has_an_active_default() -> toggle_audio::Result<()> {
     for (role, default) in ALL_ROLES.iter().zip(defaults(&audio)?) {
         let default = default.unwrap_or_else(|| panic!("no default for {role:?}"));
         assert!(audio.is_active(&default.id)?, "{role:?}: {default:?}");
-        assert_eq!(audio.name_of(&default.id)?.as_ref(), Some(&default.name));
+        // `name_of` is `None` for an endpoint without a friendly name, where `default_for` has "".
+        assert_eq!(
+            audio.name_of(&default.id)?.unwrap_or_default(),
+            default.name
+        );
     }
     Ok(())
 }

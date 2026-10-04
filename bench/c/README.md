@@ -26,7 +26,7 @@ plus the console-subsystem decision in `docs/DESIGN.md` section 12, with the out
 listed under [Deviations from benchmark-method.md section 1](#deviations-from-benchmark-methodmd-section-1)
 below; where the two disagree, this table is what every implementation actually emits:
 
-| Command | Behaviour | stdout | Exit |
+| Command | Behavior | stdout | Exit |
 | --- | --- | --- | --- |
 | `ta-c list` | Active render endpoints in enumeration order | `<id>\t<name>\t<flags>` per line; flags `*` default, `c` default communications, `*c` both, `-` neither | 0 |
 | `ta-c get` | Default render endpoint (`eConsole`) | `<id>\t<name>` | 0, or 4 if there is no default |
@@ -150,7 +150,7 @@ cl /nologo /W4 /utf-8 /O2 /GL /Gy /Gw /GS- /DUNICODE /D_UNICODE <variant flags> 
 | `/O2` | Optimize for speed. The program is COM/IO bound, so `/O1` would measure the same; `/O2` is the conventional "fast" setting. |
 | `/GL` + `/LTCG` | Whole-program optimization of `ta.c` (cross-function inlining). The prebuilt CRT libraries are not `/GL` objects, so LTCG does not touch them; unused static-CRT code is removed by `/OPT:REF`. |
 | `/Gy` `/Gw` | Put every function (`/Gy`) and global (`/Gw`) in its own COMDAT so that `/OPT:REF` can drop unreferenced ones and `/OPT:ICF` can fold identical ones. |
-| `/GS-` | No per-function stack-cookie checks in `ta.c` (negligible cost either way). The CRT startup still initialises the cookie (`__security_init_cookie`) in the `/MT` and `/MD` builds; only `ta-c-nocrt` skips it. Required for the no-CRT build, which has no `__security_check_cookie`. The program has no attacker-controlled buffers (all text goes through bounds-checked heap buffers). |
+| `/GS-` | No per-function stack-cookie checks in `ta.c` (negligible cost either way). The CRT startup still initializes the cookie (`__security_init_cookie`) in the `/MT` and `/MD` builds; only `ta-c-nocrt` skips it. Required for the no-CRT build, which has no `__security_check_cookie`. The program has no attacker-controlled buffers (all text goes through bounds-checked heap buffers). |
 | `/MT` | Links the CRT statically: no `vcruntime140.dll` dependency (that DLL is not part of Windows). `ta-c-md` uses `/MD` for comparison. |
 | `/W4` | High warning level. The build is warning-free, and `build.ps1` prints any diagnostic it sees. |
 | `/utf-8` | Source and execution character sets are UTF-8, whatever the system code page (950 here). The source is ASCII, so this is a safeguard. |

@@ -25,6 +25,7 @@ use serde::{Deserialize, Serialize};
 use windows::Win32::System::Com::CoTaskMemFree;
 use windows::Win32::UI::Shell::{FOLDERID_RoamingAppData, KF_FLAG_DEFAULT, SHGetKnownFolderPath};
 
+use crate::audio::same_endpoint_id;
 use crate::error::{ConfigProblem, Error, Result};
 
 /// The configuration format version this build reads and writes.
@@ -109,14 +110,7 @@ impl Config {
                 return invalid(format!("{label} has no device id"));
             }
         }
-        // Endpoint ids are ASCII (`{0.0.0.00000000}.{guid}`) and Windows compares them
-        // case-insensitively.
-        if self
-            .device1
-            .id
-            .trim()
-            .eq_ignore_ascii_case(self.device2.id.trim())
-        {
+        if same_endpoint_id(self.device1.id.trim(), self.device2.id.trim()) {
             return invalid("device1 and device2 are the same device".to_owned());
         }
         Ok(())

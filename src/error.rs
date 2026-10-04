@@ -81,8 +81,6 @@ pub enum Error {
         /// The failure code it returned.
         hr: HRESULT,
     },
-    /// An I/O error outside configuration handling.
-    Io(io::Error),
     /// JSON serialization failed outside configuration loading.
     Json(serde_json::Error),
     /// The settings dialog could not be created or failed while running.
@@ -150,7 +148,6 @@ impl Error {
                 ..
             }
             | Self::Com { .. }
-            | Self::Io(_)
             | Self::Json(_)
             | Self::Gui(_) => EXIT_FAILURE,
         }
@@ -223,7 +220,6 @@ impl fmt::Display for Error {
                     write!(f, ": {message}")
                 }
             }
-            Self::Io(error) => write!(f, "I/O error: {error}"),
             Self::Json(error) => write!(f, "JSON error: {error}"),
             Self::Gui(message) => write!(f, "settings dialog: {message}"),
         }
@@ -234,7 +230,6 @@ impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::Config { problem, .. } => Some(problem),
-            Self::Io(error) => Some(error),
             Self::Json(error) => Some(error),
             _ => None,
         }
@@ -259,12 +254,6 @@ impl std::error::Error for ConfigProblem {
             Self::Parse(error) => Some(error),
             Self::Invalid(_) => None,
         }
-    }
-}
-
-impl From<io::Error> for Error {
-    fn from(error: io::Error) -> Self {
-        Self::Io(error)
     }
 }
 
@@ -344,7 +333,6 @@ mod tests {
                 },
                 EXIT_FAILURE,
             ),
-            (Error::Io(io::Error::other("x")), EXIT_FAILURE),
             (Error::Json(json_error()), EXIT_FAILURE),
             (Error::Gui("x".into()), EXIT_FAILURE),
         ];

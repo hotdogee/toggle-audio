@@ -1,4 +1,4 @@
-# spawnbench mode=inherit runs=10 warmup=1 cmd=I:\Projects\toggle-audio\bench\c\bin\ta-c-gui.exe get
+# spawnbench mode=inherit runs=10 warmup=1 cmd=<repo>\bench\c\bin\ta-c-gui.exe get
 run	1	14241.3	0
 run	2	14706.2	0
 run	3	14125.8	0

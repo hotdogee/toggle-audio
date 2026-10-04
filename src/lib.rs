@@ -9,24 +9,24 @@
 //!
 //! Both call [`run`]. Module map:
 //!
-//! - [`cli`]: command-line parsing.
+//! - `cli`: command-line parsing.
 //! - [`config`]: the JSON configuration file under `%APPDATA%\toggle-audio`.
 //! - [`toggle`]: the toggle decision (pure) and its execution.
 //! - [`audio`]: Core Audio enumeration and `IPolicyConfig::SetDefaultEndpoint`.
-//! - [`console`]: console / redirected output and message-box error reporting.
-//! - [`timing`]: `--timing` phase stamps.
-//! - [`gui`]: the settings dialog.
+//! - `console`: console / redirected output and message-box error reporting.
+//! - `timing`: `--timing` phase stamps.
+//! - `gui`: the settings dialog.
 //! - [`error`]: the error type and exit codes.
 //!
 //! See `docs/DESIGN.md` for the full specification.
 
 pub mod audio;
-pub mod cli;
+mod cli;
 pub mod config;
-pub mod console;
+mod console;
 pub mod error;
-pub mod gui;
-pub mod timing;
+mod gui;
+mod timing;
 pub mod toggle;
 
 use std::ffi::OsString;
@@ -39,7 +39,7 @@ use audio::{AudioSystem, Endpoint, Role, roles_for};
 use cli::{Command, Options};
 use console::Output;
 use error::EXIT_CONFIG;
-use gui::OpenReason;
+use gui::{DialogOutcome, OpenReason};
 use timing::Timing;
 use toggle::display_name;
 
@@ -56,7 +56,7 @@ pub const APP_TITLE: &str = "Toggle Audio";
 /// otherwise, so a failed hotkey press never fails silently. Success output goes to stdout and is
 /// silent when there is no console.
 #[must_use]
-#[allow(
+#[expect(
     clippy::needless_pass_by_value,
     reason = "takes the collected std::env::args_os() so the binaries stay one-liners"
 )]
@@ -153,7 +153,8 @@ fn toggle(options: &Options, output: &Output, timing: &mut Timing) -> Result<Exi
 /// From a terminal: fail with `problem`, whose message says to run `settings` (a script must
 /// never block on a dialog). From a hotkey (no console): open Settings so the press sets the
 /// program up or repairs it; after Save, confirm with a message box and exit 0 (without toggling
-/// on the same press); exit [`EXIT_CONFIG`] when the dialog is cancelled.
+/// on the same press); exit [`EXIT_CONFIG`] when the dialog is cancelled, and 0 when a settings
+/// dialog was already open (it is brought to the front, as with `settings`).
 fn set_up(path: &Path, output: &Output, problem: Error) -> Result<ExitCode> {
     if output.has_console_or_redirect() {
         return Err(problem);
@@ -164,7 +165,7 @@ fn set_up(path: &Path, output: &Output, problem: Error) -> Result<ExitCode> {
         _ => return Err(problem),
     };
     match gui::show_settings(path, None, &reason, &current_exe()?)? {
-        Some(config) => {
+        DialogOutcome::Saved(config) => {
             output.message_box_info(
                 APP_TITLE,
                 &format!(
@@ -175,7 +176,10 @@ fn set_up(path: &Path, output: &Output, problem: Error) -> Result<ExitCode> {
             );
             Ok(ExitCode::SUCCESS)
         }
-        None => Ok(ExitCode::from(EXIT_CONFIG)),
+        // A settings dialog was already open (an earlier press) and has been brought to the
+        // front; that one decides.
+        DialogOutcome::AlreadyOpen => Ok(ExitCode::SUCCESS),
+        DialogOutcome::Cancelled => Ok(ExitCode::from(EXIT_CONFIG)),
     }
 }
 
@@ -198,15 +202,16 @@ fn current_exe() -> Result<PathBuf> {
 fn list(output: &Output, timing: &mut Timing) -> Result<ExitCode> {
     let audio = AudioSystem::new()?;
     timing.mark("com_ready");
-    let default = audio.default_for(Role::Console)?;
-    let communications = audio.default_for(Role::Communications)?;
+    // Only the ids are needed: `default_for` would also read each default's friendly name.
+    let default = audio.default_id(Role::Console)?;
+    let communications = audio.default_id(Role::Communications)?;
     timing.mark("default_read");
     let endpoints = audio.list_active()?;
     timing.mark("listed");
     output.out(&format_list(
         &endpoints,
-        default.as_ref().map(|endpoint| endpoint.id.as_str()),
-        communications.as_ref().map(|endpoint| endpoint.id.as_str()),
+        default.as_deref(),
+        communications.as_deref(),
     ));
     Ok(ExitCode::SUCCESS)
 }
@@ -241,10 +246,12 @@ fn set(query: &str, options: &Options, output: &Output, timing: &mut Timing) -> 
     let audio = AudioSystem::new()?;
     timing.mark("com_ready");
     let query = query.trim();
-    let by_id = if looks_like_endpoint_id(query) {
-        audio.name_of(query)?.map(|name| Endpoint {
+    // `lookup` decides whether the id is known: `name_of` is also `None` for an endpoint without a
+    // friendly name, which would turn a known but inactive device into "not found".
+    let by_id = if looks_like_endpoint_id(query) && audio.lookup(query)?.is_some() {
+        Some(Endpoint {
             id: query.to_owned(),
-            name,
+            name: audio.name_of(query)?.unwrap_or_default(),
         })
     } else {
         None
@@ -257,7 +264,11 @@ fn set(query: &str, options: &Options, output: &Output, timing: &mut Timing) -> 
     let changed = audio.set_default(&target.id, roles_for(switch_communications))?;
     timing.mark("set_done");
 
-    let name = single_line(&target.name);
+    let name = if target.name.is_empty() {
+        target.id.clone()
+    } else {
+        single_line(&target.name)
+    };
     if changed {
         output.out(&format!("Switched to {name}\n"));
     } else {
@@ -331,7 +342,7 @@ fn format_list(
     communications: Option<&str>,
 ) -> String {
     let matches = |role_default: Option<&str>, id: &str| {
-        role_default.is_some_and(|default_id| default_id.eq_ignore_ascii_case(id))
+        role_default.is_some_and(|default_id| audio::same_endpoint_id(default_id, id))
     };
     let mut text = String::with_capacity(endpoints.len() * 96);
     for endpoint in endpoints {

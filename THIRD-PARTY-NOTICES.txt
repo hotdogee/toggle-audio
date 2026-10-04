@@ -1,0 +1,110 @@
+Third-party notices for Toggle Audio 0.1.0
+
+toggle-audio.exe and toggle-audiow.exe are licensed under the MIT License (see LICENSE).
+They are statically linked with the Rust crates listed below. Each crate is available under
+the MIT License (some also under Apache-2.0 or the Unlicense, at the licensee's choice), and
+Toggle Audio uses each of them under the MIT License, reproduced below with its copyright
+notices. The Rust standard library is linked too; it is available under the same terms
+(https://github.com/rust-lang/rust).
+
+Generated from Cargo.lock by scripts/third-party-notices.ps1. Do not edit by hand.
+
+Crates:
+
+  itoa                   1.0.18    MIT OR Apache-2.0          https://github.com/dtolnay/itoa
+  memchr                 2.8.3     Unlicense OR MIT           https://github.com/BurntSushi/memchr
+  serde                  1.0.229   MIT OR Apache-2.0          https://github.com/serde-rs/serde
+  serde_core             1.0.229   MIT OR Apache-2.0          https://github.com/serde-rs/serde
+  serde_json             1.0.151   MIT OR Apache-2.0          https://github.com/serde-rs/json
+  windows                0.62.2    MIT OR Apache-2.0          https://github.com/microsoft/windows-rs
+  windows-collections    0.3.2     MIT OR Apache-2.0          https://github.com/microsoft/windows-rs
+  windows-core           0.62.2    MIT OR Apache-2.0          https://github.com/microsoft/windows-rs
+  windows-future         0.3.2     MIT OR Apache-2.0          https://github.com/microsoft/windows-rs
+  windows-link           0.2.1     MIT OR Apache-2.0          https://github.com/microsoft/windows-rs
+  windows-numerics       0.3.1     MIT OR Apache-2.0          https://github.com/microsoft/windows-rs
+  windows-result         0.4.1     MIT OR Apache-2.0          https://github.com/microsoft/windows-rs
+  windows-strings        0.5.1     MIT OR Apache-2.0          https://github.com/microsoft/windows-rs
+  windows-threading      0.2.1     MIT OR Apache-2.0          https://github.com/microsoft/windows-rs
+  zmij                   1.0.23    MIT                        https://github.com/dtolnay/zmij
+
+------------------------------------------------------------------------------
+itoa 1.0.18, serde 1.0.229, serde_core 1.0.229, serde_json 1.0.151, zmij 1.0.23
+Authors: David Tolnay, Erick Tryzelaar
+------------------------------------------------------------------------------
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
+------------------------------------------------------------------------------
+memchr 2.8.3
+Authors: Andrew Gallant, bluss
+------------------------------------------------------------------------------
+
+The MIT License (MIT)
+
+Copyright (c) 2015 Andrew Gallant
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+------------------------------------------------------------------------------
+windows 0.62.2, windows-collections 0.3.2, windows-core 0.62.2, windows-future 0.3.2, windows-link 0.2.1, windows-numerics 0.3.1, windows-result 0.4.1, windows-strings 0.5.1, windows-threading 0.2.1
+------------------------------------------------------------------------------
+
+MIT License
+
+    Copyright (c) Microsoft Corporation.
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE

@@ -1,4 +1,5 @@
-#Requires -Version 7.0
+﻿#Requires -Version 7.0
+
 <#
 .SYNOPSIS
     Builds bench\csharp\bin\ta-cs.exe (C# .NET 9 NativeAOT) non-interactively.

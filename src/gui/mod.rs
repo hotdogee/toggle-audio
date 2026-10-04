@@ -49,6 +49,17 @@ pub enum OpenReason {
     Repair(String),
 }
 
+/// How a [`show_settings`] call ended.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DialogOutcome {
+    /// The user saved this configuration; the file has already been written.
+    Saved(Config),
+    /// The user cancelled (Cancel, Esc, Alt+F4 or the close button).
+    Cancelled,
+    /// Another settings dialog was already open in this session and has been brought to the front.
+    AlreadyOpen,
+}
+
 /// Shows the settings dialog and blocks until it closes.
 ///
 /// - `config_path`: where Save writes the configuration (atomically, via [`crate::config::save`]).
@@ -59,9 +70,9 @@ pub enum OpenReason {
 /// - `exe_path`: the executable to show and copy for the G HUB binding (normally
 ///   `std::env::current_exe()`).
 ///
-/// Returns `Ok(Some(config))` when the user saved (the file has already been written) and
-/// `Ok(None)` when the dialog was cancelled, or when another settings dialog was already open and
-/// has been brought to the front instead.
+/// Returns [`DialogOutcome::Saved`] when the user saved (the file has already been written),
+/// [`DialogOutcome::Cancelled`] when the dialog was cancelled, and [`DialogOutcome::AlreadyOpen`]
+/// when another settings dialog was already open and has been brought to the front instead.
 ///
 /// # Errors
 ///
@@ -74,7 +85,7 @@ pub fn show_settings(
     existing: Option<Config>,
     reason: &OpenReason,
     exe_path: &Path,
-) -> Result<Option<Config>> {
+) -> Result<DialogOutcome> {
     dialog::run(config_path, existing, reason, exe_path)
 }
 

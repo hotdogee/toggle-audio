@@ -54,6 +54,9 @@ jobs:
       - name: cargo fmt
         run: cargo fmt --all -- --check
 
+      - name: THIRD-PARTY-NOTICES.txt up to date
+        run: ./scripts/third-party-notices.ps1 -Check
+
       - name: cargo clippy
         run: cargo clippy --all-targets --locked -- -D warnings
 
@@ -87,14 +90,26 @@ jobs:
             target/release/toggle-audiow.exe
           if-no-files-found: error
 
+  msrv:
+    name: Minimum Rust version (rust-version in Cargo.toml)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Keep in step with rust-version in Cargo.toml.
+      - uses: dtolnay/rust-toolchain@1.85
+
+      - name: cargo check on the minimum Rust version
+        run: cargo +1.85 check --all-targets --locked
+
   bench-build:
     name: Benchmarks (compile only, no timing)
     runs-on: windows-latest
     # Every step below runs even if an earlier language failed (!cancelled()),
     # so one run reports all broken implementations; the job still fails if
     # any non-experimental step fails. The build.ps1 scripts discover tools
-    # from PATH (with fallbacks to the maintainer's local paths), so the setup
-    # actions below only need to put each toolchain on PATH.
+    # from PATH (with fallbacks to the standard install locations), so the
+    # setup actions below only need to put each toolchain on PATH.
     steps:
       - uses: actions/checkout@v7
 
@@ -116,7 +131,7 @@ jobs:
 
       - name: Rust
         if: ${{ !cancelled() }}
-        run: cargo build --release --manifest-path bench/rust/Cargo.toml
+        run: cargo build --release --locked --manifest-path bench/rust/Cargo.toml
 
       - uses: actions/setup-dotnet@v6
         with:
@@ -153,11 +168,16 @@ jobs:
       # Experimental: the PowerShell baseline (ps2exe wrapper of the original
       # proof of concept) depends on the PowerShell Gallery being reachable and
       # on a third-party module; it is a historical reference, not product code.
+      # ps2exe is a Windows PowerShell module and build.ps1 runs it in
+      # powershell.exe, so it is installed from there (Install-Module under
+      # pwsh would put it in Documents\PowerShell\Modules, which Windows
+      # PowerShell does not search).
       - name: PowerShell baseline (experimental)
         if: ${{ !cancelled() }}
         continue-on-error: true
         run: |
-          Install-Module ps2exe -Scope CurrentUser -Force
+          powershell.exe -NoProfile -NonInteractive -Command "Install-Module ps2exe -RequiredVersion 1.0.17 -Scope CurrentUser -Force"
+          if ($LASTEXITCODE) { throw "Install-Module ps2exe failed (exit $LASTEXITCODE)" }
           ./bench/powershell/build.ps1
 
   msi:

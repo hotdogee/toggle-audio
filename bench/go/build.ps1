@@ -1,4 +1,5 @@
-#Requires -Version 7
+﻿#Requires -Version 7
+
 <#
 .SYNOPSIS
     Builds bin\ta-go.exe: the Go implementation of the toggle-audio bench CLI.

@@ -12,7 +12,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         "assets/app.rc",
         "assets/app-windowed.rc",
         "assets/app.manifest",
-        "assets/app.ico",
+        "assets/icon/toggle-audio.ico",
         "assets/resource.h",
     ] {
         println!("cargo:rerun-if-changed={input}");

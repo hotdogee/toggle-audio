@@ -1,9 +1,9 @@
-#Requires -Version 7.0
+﻿#Requires -Version 7.0
 
 <#
 .SYNOPSIS
     Packages the PowerShell baseline (ta.ps1) into bin\ta-ps.exe with ps2exe, the way the original
-    C:\bin\Switch-Audio.exe was made, so the ps2exe hosting cost can be measured.
+    Switch-Audio.exe proof of concept was made, so the ps2exe hosting cost can be measured.
 
 .DESCRIPTION
     Non-interactive and idempotent: every run deletes and rebuilds the two exes in bin\
@@ -14,9 +14,9 @@
                             config file), then the manifest ..\common\detached.manifest is
                             embedded with mt.exe (consoleAllocationPolicy=detached, bench
                             contract, DESIGN.md section 12)
-      bin\ta-ps-anycpu.exe  the user's original packaging, unchanged: plain `Invoke-ps2exe in out`
+      bin\ta-ps-anycpu.exe  the original's packaging, unchanged: plain `Invoke-ps2exe in out`
                             (AnyCPU, console subsystem, STA, ps2exe's default asInvoker manifest).
-                            Same flags as C:\bin\Switch-Audio.exe (PE32 AnyCPU "IL only", CUI).
+                            Same flags as the original Switch-Audio.exe (PE32 AnyCPU "IL only", CUI).
 
     ps2exe 1.0.17 is a Windows PowerShell module: under PowerShell 7 it re-launches itself in
     powershell.exe, and the generated exe always targets .NET Framework 4.x and references
@@ -157,7 +157,7 @@ New-Item -ItemType Directory -Force -Path $binDir, $objDir | Out-Null
 $variants = [ordered]@{
     # The bench contract build: 64-bit only, console subsystem, detached console policy.
     'ta-ps'        = @{ Ps2exe = '-x64 -noConsole:$false'; Detached = $true }
-    # The user's original packaging (no switches at all), for comparison.
+    # The original's packaging (no switches at all), for comparison.
     'ta-ps-anycpu' = @{ Ps2exe = ''; Detached = $false }
 }
 

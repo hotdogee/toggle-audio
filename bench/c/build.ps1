@@ -1,4 +1,5 @@
 ﻿#Requires -Version 7.0
+
 <#
 .SYNOPSIS
     Builds the C (MSVC) toggle-audio benchmark reference and its comparison variants.

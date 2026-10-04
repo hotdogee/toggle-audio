@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     End-to-end check of toggle-audio.exe against the real Windows audio stack.
 
@@ -32,7 +32,7 @@
     Run only the read-only part; the default device is never changed.
 
 .PARAMETER SkipBuild
-    Do not run cargo; use the existing release build (honours CARGO_TARGET_DIR).
+    Do not run cargo; use the existing release build (honors CARGO_TARGET_DIR).
 
 .PARAMETER Exe
     Path of the toggle-audio.exe to test; toggle-audiow.exe is expected next to it. Implies

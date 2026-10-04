@@ -34,7 +34,7 @@
     <PublishAot>true</PublishAot>
     <!-- Whole-program trimming (already the default under PublishAot; stated for clarity). -->
     <TrimMode>full</TrimMode>
-    <!-- Favour speed over size in the ILC code generator. -->
+    <!-- Favor speed over size in the ILC code generator. -->
     <OptimizationPreference>Speed</OptimizationPreference>
     <!-- Merge methods whose machine code is identical (smaller image, nothing to lose here). -->
     <IlcFoldIdenticalMethodBodies>true</IlcFoldIdenticalMethodBodies>

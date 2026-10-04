@@ -57,7 +57,7 @@ impl Failure {
 
 /// Extension for `windows::core::Result`: attach the name of the failing call.
 pub trait Step<T> {
-    /// Converts a COM error into [`Failure::Com`] labelled with `step`.
+    /// Converts a COM error into [`Failure::Com`] labeled with `step`.
     fn step(self, step: &'static str) -> Result<T, Failure>;
 }
 

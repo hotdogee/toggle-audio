@@ -79,19 +79,21 @@ CI runs these on `windows-latest`; run them locally first:
 cargo fmt --all -- --check
 cargo clippy --all-targets --locked -- -D warnings
 cargo test --locked
+pwsh scripts/third-party-notices.ps1 -Check   # after a Cargo.lock change
+cargo +1.85 check --all-targets --locked      # minimum Rust version (rust-version in Cargo.toml)
 ```
 
 Expectations:
 
 - **Formatting:** `cargo fmt --all` with the repository's `rustfmt.toml`. No manual style debates.
-- **Lints:** clippy (including the `pedantic` group configured in `Cargo.toml`) must be clean with `-D warnings`. If you need an `#[allow(...)]`, keep it as narrow as possible and add a comment explaining why.
+- **Lints:** clippy (including the `pedantic` group configured in `Cargo.toml`) must be clean with `-D warnings`. If you need to silence a lint, use `#[expect(..., reason = "...")]` (it warns once the lint no longer fires) and keep it as narrow as possible.
 - **Unsafe code:** `unsafe` is allowed only where the Win32 and COM calls live: `src/audio.rs`, `src/console.rs`, `src/gui/`, the known-folder fallback in `src/config.rs`, `src/timing.rs` and the enumeration helper in `tests/real_device.rs`. Every `unsafe` block needs a `// SAFETY:` comment stating the invariant it relies on.
 - **Tests:** new logic comes with unit tests. Keep pure logic (toggle decision, config parsing, CLI parsing, encoding helpers) separate from COM so it can be tested on CI runners, which have no audio devices.
-- **Dependencies:** the startup-time budget and the zero-runtime-dependency goal matter. Discuss any new crate in an issue before adding it.
+- **Dependencies:** the startup-time budget and the zero-runtime-dependency goal matter. Discuss any new crate in an issue before adding it, and regenerate `THIRD-PARTY-NOTICES.txt` (`pwsh scripts/third-party-notices.ps1`) whenever `Cargo.lock` changes.
 
 ### Real-device tests
 
-Tests that touch real audio endpoints live in `tests/real_device.rs` and are marked `#[ignore]`, because hosted CI has no audio devices. Run them on a machine with at least one active playback device. By default they are read-only: the only `set` calls target the device that already is the default.
+Tests that touch real audio endpoints live in `tests/real_device.rs` and are marked `#[ignore]`, because hosted CI has no audio devices. Run them on a machine with at least one active playback device. By default they never change a default device: the only `set` calls target the device that already is the default, and one test re-asserts each role's current default through `SetDefaultEndpoint`.
 
 ```powershell
 cargo test -- --ignored
@@ -109,7 +111,7 @@ cargo test --test real_device -- --ignored toggle_round_trip
 ```powershell
 pwsh scripts/e2e.ps1 -SkipToggle                                    # read-only checks only
 pwsh scripts/e2e.ps1 -Device1 '{0.0.0.00000000}.{...}' -Device2 '{0.0.0.00000000}.{...}' -Rounds 2
-pwsh scripts/e2e.ps1 -SkipBuild                                     # test the existing release build (honours CARGO_TARGET_DIR)
+pwsh scripts/e2e.ps1 -SkipBuild                                     # test the existing release build (honors CARGO_TARGET_DIR)
 pwsh scripts/e2e.ps1 -Exe path\to\toggle-audio.exe                 # test specific binaries (toggle-audiow.exe next to it)
 ```
 
@@ -140,6 +142,7 @@ Pull requests are squash-merged, so the pull request title becomes the commit me
 - [ ] Every new `unsafe` block has a `// SAFETY:` comment.
 - [ ] `docs/DESIGN.md`, `README.md` and `--help` text are updated if user-visible behavior, the CLI or the config format changed.
 - [ ] `CHANGELOG.md` has an entry under `[Unreleased]` for user-visible changes.
+- [ ] If `Cargo.lock` changed, `THIRD-PARTY-NOTICES.txt` is regenerated with `pwsh scripts/third-party-notices.ps1` (CI checks it).
 - [ ] If the change affects startup or toggle latency, before and after numbers (for example from `--timing` or hyperfine) are included.
 - [ ] The pull request title follows Conventional Commits.
 

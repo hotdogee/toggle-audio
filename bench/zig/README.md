@@ -116,10 +116,10 @@ zig cc -target x86_64-windows-gnu -O2 -s -municode -Wall ta-mingw.c ..\common\de
 Source-level choices that affect the binary:
 
 - **No large stack frames.** The 4 KB UTF-8 staging buffer and the argument storage are static (and
-  zero-initialised, so they live in `.bss`). A frame over one page makes LLVM emit a `__chkstk`
+  zero-initialized, so they live in `.bss`). A frame over one page makes LLVM emit a `__chkstk`
   stack probe, which pulled all of Zig's `compiler_rt` (about 45 KB of `.text`) into the first
   build.
-- **Zero-initialised globals.** The text buffers take the std handle id as a `comptime` parameter
+- **Zero-initialized globals.** The text buffers take the std handle id as a `comptime` parameter
   rather than a field, so the whole global is zero and goes to `.bss` instead of 64 KB of `.data`.
 - **`noinline` flush.** The UTF-8 encoder and write path are kept out of every append call site,
   which ReleaseFast would otherwise inline many times over.
@@ -193,7 +193,7 @@ Both Zig builds are within noise of the MSVC reference in every scenario. `ta-zi
 
 - **Tied to Zig 0.17.** Zig's language and std change between releases. `ta.zig` keeps its std
   usage minimal (`std.debug.assert` at comptime and `std.math.maxInt`) and declares all Win32/COM
-  types itself, but spellings such as `callconv(.winapi)`, `@splat` initialisers and
+  types itself, but spellings such as `callconv(.winapi)`, `@splat` initializers and
   `-fsingle-threaded` are 0.17 syntax.
 - **No console window only on Windows 11 24H2+.** Older Windows ignores `consoleAllocationPolicy`,
   so a launch from a GUI process briefly shows a console there.

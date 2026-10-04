@@ -95,10 +95,10 @@ impl PolicyConfig {
     /// back to `CPolicyConfigVistaClient` as `IPolicyConfigVista`. When both
     /// fail, the HRESULT of the primary attempt is reported.
     ///
-    /// The `ComApartment` borrow proves COM is initialised on this thread
+    /// The `ComApartment` borrow proves COM is initialized on this thread
     /// and ties the call to an apartment that outlives it.
     pub fn create(_apartment: &ComApartment) -> Result<Self, Failure> {
-        // SAFETY: COM is initialised on this thread; CoCreateInstance QIs the
+        // SAFETY: COM is initialized on this thread; CoCreateInstance QIs the
         // new object for `IPolicyConfig::IID`, so the returned pointer really
         // implements the declared vtable.
         let primary: windows::core::Result<IPolicyConfig> =

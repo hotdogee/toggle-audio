@@ -10,7 +10,7 @@ This directory holds the PowerShell starting point of Toggle Audio and a PowerSh
 
 ## The original setup
 
-The user's G HUB key ran `C:\bin\Switch-Audio.exe`, a 27,648-byte exe that ps2exe built from `switch-audio.ps1` with default settings. The file shows those settings:
+The author's G HUB key ran the original `Switch-Audio.exe`, a 27,648-byte exe that ps2exe built from `switch-audio.ps1` with default settings. The file shows those settings:
 
 - PE32, machine x86, CLR header "IL only" (AnyCPU, so it runs as a 64-bit process).
 - Console subsystem (3).
@@ -96,7 +96,7 @@ The build is non-interactive and idempotent: it deletes and rebuilds the two exe
 | Output | ps2exe flags | Post-processing | Why |
 | --- | --- | --- | --- |
 | `bin\ta-ps.exe` (primary, ~48 KB) | `-x64 -noConsole:$false` | `mt.exe -manifest ..\common\detached.manifest -outputresource:ta-ps.exe;#1` | Bench contract: 64-bit, console subsystem (`-noConsole:$false`, so `/target:exe`), and the `consoleAllocationPolicy=detached` manifest (DESIGN.md §12), so a G HUB launch on Windows 11 24H2+ creates no console. ps2exe has no option for a custom manifest, so `mt.exe` replaces the default manifest that csc embeds. |
-| `bin\ta-ps-anycpu.exe` | none (defaults) | none | Reproduces the user's original packaging flag for flag (PE32 AnyCPU, console, STA, default manifest, no `.config`), so the cost of ps2exe as originally used can be compared with the bench build. |
+| `bin\ta-ps-anycpu.exe` | none (defaults) | none | Reproduces the original's packaging flag for flag (PE32 AnyCPU, console, STA, default manifest, no `.config`), so the cost of ps2exe as originally used can be compared with the bench build. |
 
 Flags that both builds leave at the ps2exe defaults, on purpose:
 
@@ -148,7 +148,7 @@ Notes for measuring:
 
 - **ps2exe rewrites arguments.** The generated host turns anything that looks like a PowerShell parameter into a named parameter, so `--timing` reaches the script as `-timing`. That is followed by the next word or, at the end of the line, by an extra `[bool] $true`. `ta.ps1` handles both cases, so the contract holds for `bin\ta-ps.exe`. It accepts the single-dash `-timing` (and drops the trailing `[bool]`) only under the ps2exe host (`$Host.Name` is `PSRunspace-Host`). Under `powershell.exe -File` and `pwsh -File` only the exact `--timing` counts, and `-timing` is a positional argument (usage, exit 1), as in every other implementation. Ids (`{...}.{...}`) pass through unchanged. ps2exe also reserves `-wait`, `-extract:<file>`, `-end`, `-?` and `-debug`.
 - **ps2exe reads stdin when it is redirected.** It reads until EOF before it runs the script. hyperfine's default null stdin is fine. An open pipe that never closes would hang the exe.
-- **Real toggles.** `toggle` and `set` to another id change the default device. Follow the scenario (c) rules in benchmark-method.md §2.7, and use the original `C:\bin\Switch-Audio.exe` row only under those rules: it toggles S/PDIF ↔ PG42UQ by name.
+- **Real toggles.** `toggle` and `set` to another id change the default device. Follow the scenario (c) rules in benchmark-method.md §2.7, and use the original `Switch-Audio.exe` row only under those rules: it toggles S/PDIF ↔ PG42UQ by name.
 
 ## Results
 
@@ -173,7 +173,7 @@ hyperfine `-N`, warm-up 3, 20 runs × 3 rounds pooled (toggle rows: warm-up 2 + 
 | ps2exe-set-noop | `bin\ta-ps.exe set <PG42UQ>` | 278.01 ± 30.97 | 273.50 | 264.43 | n = 60 (20 × 3 rounds) |
 | ps2exe-anycpu-set-noop | `bin\ta-ps-anycpu.exe set <PG42UQ>` | 279.80 ± 11.14 | 277.36 | 266.33 | n = 60 (20 × 3 rounds) |
 | ps2exe-toggle | `bin\ta-ps.exe toggle <PG42UQ> <PHL BDM4065>` | 319.11 ± 10.29 | 322.17 | 297.13 | scenario (c) rules; n = 20 |
-| original | `C:\bin\Switch-Audio.exe` | 887.54 ± 10.16 | 887.38 | 867.09 | toggles S/PDIF ↔ PG42UQ; scenario (c) rules; n = 20 |
+| original | `Switch-Audio.exe` | 887.54 ± 10.16 | 887.38 | 867.09 | toggles S/PDIF ↔ PG42UQ; scenario (c) rules; n = 20 |
 | original-script | `powershell.exe ... -File switch-audio.ps1` | 858.50 ± 10.26 | 858.05 | 838.89 | the same script without ps2exe; n = 20 |
 
 Phase medians (`--timing`, µs since process creation, 30 runs of `set <PG42UQ> --timing`):
@@ -190,7 +190,7 @@ Cold first run of a fresh copy (`list`): `ta-ps.exe` 652 / 660 / 667 ms, `ta-ps-
 
 - These are baselines, not products: start-up is dominated by hosting a PowerShell runtime (hundreds of ms) and cannot be optimized away from inside the script.
 - `ta.ps1` mixes cmdlets (`Get-AudioDevice -List`) with the module's interop classes so the output matches the contract. A pure-cmdlet version (the proof of concept) would use eMultimedia for "default" and would never set eConsole.
-- The `toggle` path and the not-found/not-active exits (3) were not exercised during development, because the toggle and foreign-id `set` commands were off-limits on this machine. They share the validation and set code that `set <current id>` exercises. The error mapping (`E_NOTFOUND` → exit 3, `DEVICE_STATE_NOTPRESENT` → exit 3) was checked separately against the module's `GetDevice` behaviour.
+- The `toggle` path and the not-found/not-active exits (3) were not exercised during development, because the toggle and foreign-id `set` commands were off-limits on this machine. They share the validation and set code that `set <current id>` exercises. The error mapping (`E_NOTFOUND` → exit 3, `DEVICE_STATE_NOTPRESENT` → exit 3) was checked separately against the module's `GetDevice` behavior.
 - **Deviation from benchmark-method.md §1.3** ("All implementations must release their objects and call CoUninitialize"): `ta.ps1` drops its references and never calls `Release` or `CoUninitialize`, because the module's wrappers offer no `Dispose`. The CLR may release RCWs on a later GC, otherwise the in-process objects are discarded with the process (.NET Framework does not finalize reachable objects at shutdown, and .NET never runs finalizers on exit). The native rows pay for Release and CoUninitialize; the PowerShell rows do not. That cost is microseconds against hundreds of milliseconds of host start-up, so it does not change any conclusion.
 - Error fidelity: when `Get-AudioDevice -List` fails to enumerate, the cmdlet wraps the error in a plain `System.Exception`, so `ta.ps1` prints `hr=0x80131500` (COR_E_EXCEPTION) instead of the real HRESULT. The exit code (2) is still correct.
 - An endpoint without `PKEY_Device_FriendlyName` is printed with the name `Unknown` (the module's substitute, in both `list` and `get`), where `bench/c` prints an empty field. Mapping it back would cost another walk of the property store per endpoint, so it is documented rather than fixed.

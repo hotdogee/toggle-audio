@@ -130,10 +130,10 @@ struct IPolicyConfigVista { const IPolicyConfigVistaVtbl *lpVtbl; };
 #ifdef TA_NOCRT
 #include <intrin.h>
 /* The compiler may emit calls to memset/memcpy (PropVariantInit is a memset
- * macro, and struct initialisers can become memset). Without the CRT we must
+ * macro, and struct initializers can become memset). Without the CRT we must
  * provide them. "#pragma function" tells the compiler that we define these
  * normally-intrinsic functions; the rep stosb / rep movsb intrinsics keep the
- * optimiser from turning the body back into a recursive memset call. */
+ * optimizer from turning the body back into a recursive memset call. */
 #pragma function(memset, memcpy)
 void *__cdecl memset(void *dst, int value, size_t count)
 {

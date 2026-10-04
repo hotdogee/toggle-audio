@@ -10,7 +10,7 @@
 //!   policy and no redirection): the text is silently dropped.
 //!
 //! We deliberately bypass `std::io::stdout()`: it would do the same thing, but
-//! through a buffered, locked writer with its own lazy initialisation, and the
+//! through a buffered, locked writer with its own lazy initialization, and the
 //! contract asks for one direct write per stream.
 
 use windows::Win32::Foundation::HANDLE;

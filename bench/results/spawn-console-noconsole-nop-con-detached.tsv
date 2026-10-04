@@ -1,4 +1,4 @@
-# spawnbench mode=noconsole runs=200 warmup=10 cmd=I:\Projects\toggle-audio\bench\baseline\bin\nop-con-detached.exe
+# spawnbench mode=noconsole runs=200 warmup=10 cmd=<repo>\bench\baseline\bin\nop-con-detached.exe
 run	1	2507.0	0
 run	2	2482.2	0
 run	3	2467.6	0

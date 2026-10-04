@@ -1,4 +1,4 @@
-# spawnbench mode=inherit runs=10 warmup=1 cmd=I:\Projects\toggle-audio\target\release-build\release\toggle-audiow.exe get
+# spawnbench mode=inherit runs=10 warmup=1 cmd=<repo>\target\release-build\release\toggle-audiow.exe get
 run	1	16318.2	0
 run	2	17701.1	0
 run	3	17799.3	0

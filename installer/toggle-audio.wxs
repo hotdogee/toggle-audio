@@ -128,6 +128,11 @@
         <File Id="LicenseTxt" Source="$(var.RepoRoot)\LICENSE" Name="LICENSE.txt" KeyPath="yes" />
       </Component>
 
+      <!-- Licenses of the statically linked crates (scripts\third-party-notices.ps1). -->
+      <Component Id="ThirdPartyNotices" Directory="INSTALLFOLDER">
+        <File Id="ThirdPartyNoticesTxt" Source="$(var.RepoRoot)\THIRD-PARTY-NOTICES.txt" KeyPath="yes" />
+      </Component>
+
 <?ifdef ReadmeFile?>
       <Component Id="ReadmeFile" Directory="INSTALLFOLDER">
         <File Id="ReadmeMd" Source="$(var.ReadmeFile)" Name="README.md" KeyPath="yes" />

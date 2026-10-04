@@ -33,7 +33,7 @@ geometry change leaves the files byte-identical.
 - **Palette.** Two tones plus one accent: background `#1F6FEB` (blue), glyph
   `#FFFFFF`, arrows `#F59E0B` (amber). Amber on blue is a complementary pair, so
   the arrows stay distinct from the speaker even when the icon is reduced to a
-  few pixels or seen by someone with a common colour-vision deficiency (the
+  few pixels or seen by someone with a common color-vision deficiency (the
   arrows are also much lighter than the background).
 - **Shape.** Rounded square (radius ~23% of its side) with the Windows 11 flat
   look: no gradient, no shadow, no text. The master leaves 8/256 of transparent

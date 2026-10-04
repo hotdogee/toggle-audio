@@ -192,12 +192,20 @@ impl Output {
 
     /// Shows a modal, topmost error message box (`MB_ICONERROR | MB_TOPMOST | MB_SETFOREGROUND`)
     /// and returns when the user dismisses it.
+    #[expect(
+        clippy::unused_self,
+        reason = "a method on Output so every caller reports through the same object"
+    )]
     pub fn message_box_error(&self, title: &str, text: &str) {
         message_box(title, text, MB_ICONERROR);
     }
 
     /// Shows a modal, topmost information message box (`MB_ICONINFORMATION | MB_TOPMOST |
     /// MB_SETFOREGROUND`) and returns when the user dismisses it.
+    #[expect(
+        clippy::unused_self,
+        reason = "a method on Output so every caller reports through the same object"
+    )]
     pub fn message_box_info(&self, title: &str, text: &str) {
         message_box(title, text, MB_ICONINFORMATION);
     }
@@ -223,7 +231,7 @@ impl Output {
 /// unowned `MB_TOPMOST` box without `WS_EX_TOPMOST` at the bottom of the z-order, hidden behind
 /// every other window. A window owned by a topmost window is topmost itself, so the box stays
 /// visible even when the foreground request is refused. The owner sits at the mouse cursor, so the
-/// box opens centred on the monitor the user is working on, like the settings dialog.
+/// box opens centered on the monitor the user is working on, like the settings dialog.
 fn message_box(title: &str, text: &str, icon: MESSAGEBOX_STYLE) {
     let text = to_wide_nul(text);
     let title = to_wide_nul(title);
@@ -326,6 +334,7 @@ fn write_file(handle: HANDLE, bytes: &[u8]) {
 /// How many leading UTF-16 units of `units` to write in one call: at most `max`, and never ending
 /// between the two halves of a surrogate pair (unless `max` is 1, where progress wins).
 fn console_chunk_len(units: &[u16], max: usize) -> usize {
+    debug_assert!(max > 0, "a chunk must make progress");
     if units.len() <= max {
         return units.len();
     }

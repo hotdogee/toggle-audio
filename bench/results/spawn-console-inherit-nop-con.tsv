@@ -1,4 +1,4 @@
-# spawnbench mode=inherit runs=200 warmup=10 cmd=I:\Projects\toggle-audio\bench\baseline\bin\nop-con.exe
+# spawnbench mode=inherit runs=200 warmup=10 cmd=<repo>\bench\baseline\bin\nop-con.exe
 run	1	2874.4	0
 run	2	3123.7	0
 run	3	2732.1	0

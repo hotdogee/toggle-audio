@@ -30,7 +30,7 @@ The `windows` crate generates typed wrappers for the documented interfaces. Ever
 
 | Step | Call |
 | --- | --- |
-| Apartment | `CoInitializeEx(COINIT_APARTMENTTHREADED \| COINIT_DISABLE_OLE1DDE)`, wrapped in `ComApartment`, whose `Drop` calls `CoUninitialize`. `RPC_E_CHANGED_MODE` is accepted and is then not uninitialised. |
+| Apartment | `CoInitializeEx(COINIT_APARTMENTTHREADED \| COINIT_DISABLE_OLE1DDE)`, wrapped in `ComApartment`, whose `Drop` calls `CoUninitialize`. `RPC_E_CHANGED_MODE` is accepted and is then not uninitialized. |
 | Enumerator | `CoCreateInstance::<IMMDeviceEnumerator>(&MMDeviceEnumerator, None, CLSCTX_INPROC_SERVER)` |
 | Enumerate | `EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE)`, then `GetCount` and `Item(i)` |
 | Id | `IMMDevice::GetId`. The `CoTaskMemAlloc` string is owned by `CoTaskString`, whose `Drop` calls `CoTaskMemFree`. |
@@ -59,12 +59,12 @@ Arguments come from `std::env::args_os()`, which parses `GetCommandLineW` in std
 
 | Setting | Why |
 | --- | --- |
-| `opt-level = 3` | Optimise for speed. Size is secondary; the loader and COM dominate startup. |
+| `opt-level = 3` | Optimize for speed. Size is secondary; the loader and COM dominate startup. |
 | `lto = "fat"` | Whole-program LTO across std and the `windows` crate. It inlines the thin wrappers and drops unused code. |
 | `codegen-units = 1` | LLVM sees the whole crate at once, which gives the best inlining and the smallest output. |
 | `panic = "abort"` | No unwind tables or landing pads. Runtime errors never panic; they map to exit codes. |
 | `strip = true`, `debug = false` | No symbols or debug info in the exe. |
-| `incremental = false` | Reproducible, fully optimised release builds. |
+| `incremental = false` | Reproducible, fully optimized release builds. |
 
 `.cargo/config.toml` (`x86_64-pc-windows-msvc`):
 
@@ -159,7 +159,7 @@ Phase medians in µs since process creation, over 30 `--timing` runs launched fr
 ## Known limitations
 
 - **IPolicyConfig is undocumented.** It works on Windows 7 through Windows 11 26H2 (10.0.26300), and every audio switcher relies on it, but Microsoft could change it. Failing HRESULTs are reported, not hidden.
-- **The no-console-window behaviour needs Windows 11 24H2+.** Earlier Windows versions ignore `consoleAllocationPolicy`, so a launch from G HUB or Explorer would flash a console window. The product ships a GUI-subsystem twin for those versions; this bench binary does not.
+- **The no-console-window behavior needs Windows 11 24H2+.** Earlier Windows versions ignore `consoleAllocationPolicy`, so a launch from G HUB or Explorer would flash a console window. The product ships a GUI-subsystem twin for those versions; this bench binary does not.
 - If the launcher passes `CREATE_NEW_CONSOLE` explicitly, a console can still appear. The policy only changes the default.
 - **`set` always makes three `SetDefaultEndpoint` calls**, even for roles that already point at the target. The contract requires this so that the set-noop scenario measures them. The product skips roles that are already set.
 - **`toggle` decides from the eConsole default.** It does not fall back to B when A is unplugged: an inactive target exits with code 3, as in the contract.

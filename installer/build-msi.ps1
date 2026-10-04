@@ -1,4 +1,5 @@
-#Requires -Version 7.0
+﻿#Requires -Version 7.0
+
 <#
 .SYNOPSIS
     Builds the Toggle Audio MSI (WiX Toolset 7) and its SHA256 file.

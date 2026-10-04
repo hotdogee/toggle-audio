@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
 Toggles the default audio playback device between two predefined devices.
 

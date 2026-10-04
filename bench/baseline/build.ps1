@@ -1,4 +1,5 @@
 ﻿#Requires -Version 7.0
+
 <#
 .SYNOPSIS
     Builds the process-start baselines and the spawnbench launcher.

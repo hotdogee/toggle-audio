@@ -59,14 +59,14 @@ const ALL_ROLES: [(ERole, &str); 3] = [
 // COM apartment
 // ---------------------------------------------------------------------------
 
-/// Initialises COM on the current thread (single-threaded apartment) and
-/// uninitialises it on drop.
+/// Initializes COM on the current thread (single-threaded apartment) and
+/// uninitializes it on drop.
 ///
 /// STA is what the product's settings dialog needs; both CLSIDs used here are
 /// registered `ThreadingModel=Both`, so STA and MTA measure the same.
 pub struct ComApartment {
     /// False when the thread was already in the other apartment
-    /// (`RPC_E_CHANGED_MODE`): that initialisation is not ours to undo.
+    /// (`RPC_E_CHANGED_MODE`): that initialization is not ours to undo.
     uninitialize: bool,
 }
 
@@ -194,14 +194,14 @@ pub struct Endpoint {
 /// The device enumerator, tied to the lifetime of the COM apartment.
 pub struct AudioSystem<'com> {
     enumerator: IMMDeviceEnumerator,
-    /// Proof that COM is initialised; also handed to `PolicyConfig::create`.
+    /// Proof that COM is initialized; also handed to `PolicyConfig::create`.
     apartment: &'com ComApartment,
 }
 
 impl<'com> AudioSystem<'com> {
     /// `CoCreateInstance(MMDeviceEnumerator)`.
     pub fn new(apartment: &'com ComApartment) -> Result<Self, Failure> {
-        // SAFETY: COM is initialised on this thread (proven by the borrowed
+        // SAFETY: COM is initialized on this thread (proven by the borrowed
         // apartment); the result is QI'd to IMMDeviceEnumerator.
         let enumerator: IMMDeviceEnumerator =
             unsafe { CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_INPROC_SERVER) }
@@ -339,7 +339,7 @@ fn friendly_name(device: &IMMDevice) -> Result<String, Failure> {
     let mut value =
         unsafe { store.GetValue(&PKEY_Device_FriendlyName) }.step("IPropertyStore::GetValue")?;
 
-    // SAFETY: reading the `vt` tag of an initialised PROPVARIANT; the union
+    // SAFETY: reading the `vt` tag of an initialized PROPVARIANT; the union
     // member `pwszVal` is only read when the tag says it is VT_LPWSTR, and the
     // string is copied before the PROPVARIANT is cleared.
     let name = unsafe {

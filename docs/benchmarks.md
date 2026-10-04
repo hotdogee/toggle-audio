@@ -57,7 +57,7 @@ All times are wall time in ms from `CreateProcess` to process exit, as measured 
 | `pwsh -File ta.ps1` | PowerShell 7.6.6 | – | 358.29 ± 9.35 (354.43) | 732.70 ± 10.33 (731.54) | – | 419.34 ± 6.30 (418.59) | 437.97 ± 7.74 (435.32) | – |
 | `powershell.exe -NoProfile -Command exit` | empty host start | – | 132.98 ± 3.67 (132.43) | – | – | – | – | – |
 | `pwsh -NoProfile -Command exit` | empty host start | – | 198.80 ± 5.52 (197.66) | – | – | – | – | – |
-| **`C:\bin\Switch-Audio.exe`** | **the user's original** (ps2exe of `switch-audio.ps1`); toggles S/PDIF ↔ PG42UQ | 27,648 | – | – | – | – | **887.54 ± 10.16 (887.38)** | – |
+| **original `Switch-Audio.exe`** | **the original proof of concept** (ps2exe of `switch-audio.ps1`); toggles S/PDIF ↔ PG42UQ | 27,648 | – | – | – | – | **887.54 ± 10.16 (887.38)** | – |
 | `powershell.exe -File switch-audio.ps1` | the same script, without ps2exe | – | – | – | – | – | 858.50 ± 10.26 (858.05) | – |
 
 ¹ The product's `set` skips roles whose default already is the target (`docs/DESIGN.md` section 6), so with PG42UQ already the default it makes **no** `SetDefaultEndpoint` calls. The bench contract's `set` always makes three. The product's set-noop is therefore not comparable with the other rows; compare the toggle column, where every row makes three real calls.
@@ -159,7 +159,7 @@ The policy only works on Windows 11 24H2 and later, which is why the product als
 | ta.ps1 (powershell.exe) | ok | ok | ok | yes | ok | 3 | 1 | **PASS** |
 | ta.ps1 (pwsh) | ok | ok | ok | yes | ok | 3 | 1 | **PASS** |
 | ta-ps.exe | ok | ok | ok | yes | ok | 3 | 1 | **PASS** |
-| C:\bin\Switch-Audio.exe | → S/PDIF ok | → PG42UQ ok | – | – | – | – | – | **PASS** |
+| original Switch-Audio.exe | → S/PDIF ok | → PG42UQ ok | – | – | – | – | – | **PASS** |
 
 ## Sanity check against the expected ranges
 
@@ -181,14 +181,14 @@ The survey plan ([`research/benchmark-method.md`](research/benchmark-method.md) 
 | set-noop, 3 × `SetDefaultEndpoint` | 1–30 ms | 23–27 ms | in range, near the top |
 | real toggle | 10–100+ ms | 40–44 ms (native) | in range |
 | empty host | 150–500 ms | 133 ms (powershell.exe), 199 ms (pwsh) | Windows PowerShell is **slightly faster** than the range |
-| ps2exe `Switch-Audio.exe` toggle | 700–1200 ms (about 900 ms seen before) | 887.5 ms | in range; matches the user's earlier observation of about 900 ms |
+| ps2exe `Switch-Audio.exe` toggle | 700–1200 ms (about 900 ms seen before) | 887.5 ms | in range; matches the author's earlier observation of about 900 ms |
 
 ## Conclusion
 
 - **The operating system sets the floor, not the language.** All ten native builds land within 40.0–43.8 ms for a real toggle and 17.2–19.9 ms for `list`. Those differences are inside the jitter of the audio service (σ 2–4 ms at n = 20).
 - **Rust was chosen for the product**, and its real toggle (40.05 ms median) is identical to the C reference (41.59 ms) within noise. That is **about 22× faster** than the original `Switch-Audio.exe` (887.38 ms). Its extra start-up cost over C (about 2 ms on the floor) is about 5% of a toggle and invisible to a user. Rewriting it in C, Zig or a no-CRT build would save at most 2–4 ms of a ~40 ms action dominated by AudioSrv. The decision therefore rests on what the numbers leave open: memory safety around the COM and `unsafe` surface, the `windows` crate, and single-language maintenance of the CLI, dialog, tests and build.
 - **Console subsystem plus the detached manifest** is the primary exe. It costs nothing measurable, it gives shells a normal console program, and on Windows 11 24H2+ it never flashes a window from G HUB. `toggle-audiow.exe` covers older Windows versions.
-- **The build profile needs no change.** Delay-loading `ole32` would not help, because every real command uses COM.
+- **The build profile needs no change.** Delay-loading `ole32` would not help, because every real command uses COM. Delay-loading the DLLs that only the settings dialog and the known-folder fallback use (`shell32`, `oleaut32`, `comctl32`) measured about 1.2–1.8 ms faster per run in a later experiment; it is not adopted in 0.1.0.
 
 ## How to reproduce
 

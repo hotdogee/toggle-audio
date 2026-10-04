@@ -1,4 +1,5 @@
-#Requires -Version 7.0
+﻿#Requires -Version 7.0
+
 <#
 .SYNOPSIS
     Builds the Rust bench implementation and copies it to bench\rust\bin\ta-rs.exe.

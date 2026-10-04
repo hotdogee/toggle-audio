@@ -161,7 +161,7 @@ contains only `ta-cs.exe`).
 | `ApplicationManifest=..\common\detached.manifest` | `consoleAllocationPolicy=detached`: on Windows 11 24H2 or later, a launch from G HUB or Explorer creates no console window. The SDK embeds it in the IL assembly and ILC copies the Win32 resources into the native image. The manifest also carries `asInvoker` and `supportedOS`. |
 | `PublishAot=true` | Ahead-of-time native code: no JIT, no runtime install, fast startup. |
 | `TrimMode=full` | Whole-program trimming (the default under `PublishAot`, stated explicitly). |
-| `OptimizationPreference=Speed` | Tells ILC to favour speed over size. This is a startup benchmark. |
+| `OptimizationPreference=Speed` | Tells ILC to favor speed over size. This is a startup benchmark. |
 | `IlcFoldIdenticalMethodBodies=true` | Merges identical machine code. Smaller image, no runtime cost. |
 | `StackTraceSupport=false`, `IlcGenerateStackTraceData=false` | No stack-trace metadata (method names). Smaller image. ta-cs never prints stack traces. |
 | `StripSymbols=true` | Native symbols go to a separate `.pdb` instead of the exe. |

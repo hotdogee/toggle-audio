@@ -1,4 +1,5 @@
-#Requires -Version 7.0
+﻿#Requires -Version 7.0
+
 <#
 .SYNOPSIS
     Reproducible benchmark harness for every bench/<lang> implementation, the product and the
@@ -24,7 +25,7 @@
          median per phase (stderr parsed; bench lines "phase\t..", product lines "timing\t..").
       6. Real toggle scenario (unless -SkipToggle): hyperfine --warmup 2 --runs -ToggleRuns (even)
          of "<exe> toggle <PG42UQ> <PHL BDM4065>"; the product toggles with its own config
-         (APPDATA points at a temp dir); the legacy C:\bin\Switch-Audio.exe and
+         (APPDATA points at a temp dir); the legacy -LegacyExe (when given) and
          bench\powershell\switch-audio.ps1 toggle S/PDIF <-> PG42UQ (even counts only). The
          default device is verified before and after every toggle row and PG42UQ is restored.
       7. spawnbench (unless -SkipSpawn): nop floors in inherit / noconsole mode, explicit
@@ -37,6 +38,75 @@
 
     A finally block always restores PG42UQ as the default for all roles and verifies it.
     Never touches the user's real toggle-audio config (APPDATA is redirected for the product).
+
+.PARAMETER Runs
+    hyperfine runs per command and round in the main scenarios (default 200).
+
+.PARAMETER Warmup
+    hyperfine warm-up runs per command in the main scenarios (default 10).
+
+.PARAMETER Rounds
+    Rounds per scenario; odd rounds run the commands forward, even rounds in reverse (default 3).
+
+.PARAMETER ToggleRuns
+    Runs per real toggle row (step 6). Must be even, so every row ends on the device it started
+    from (default 20).
+
+.PARAMETER PsRuns
+    hyperfine runs for the PowerShell baselines (default 20).
+
+.PARAMETER PsWarmup
+    hyperfine warm-up runs for the PowerShell baselines (default 3).
+
+.PARAMETER TimingRuns
+    Runs per executable for the --timing phase capture (step 5, default 30).
+
+.PARAMETER SpawnRuns
+    Runs per spawnbench row that opens a console window or emulates the G HUB launch (step 7,
+    default 10). The inherit / noconsole floors use -Runs and -Warmup.
+
+.PARAMETER ColdCopies
+    Fresh copies per executable for the cold first run (step 8, default 3).
+
+.PARAMETER Scenarios
+    The hyperfine scenarios to run: any of noargs, list, get, set-noop (default all four).
+
+.PARAMETER SkipTiming
+    Skip the --timing phase capture (step 5).
+
+.PARAMETER SkipToggle
+    Never change the default device: skip the toggle steps of the gate and the real toggle
+    scenario (step 6).
+
+.PARAMETER SkipBuild
+    Use the executables already built instead of running every build script (step 1).
+
+.PARAMETER SkipGate
+    Skip the correctness gate (step 3).
+
+.PARAMETER SkipPowerShell
+    Skip the PowerShell baselines in step 4.
+
+.PARAMETER SkipSpawn
+    Skip spawnbench (step 7).
+
+.PARAMETER SkipCold
+    Skip the cold first run (step 8).
+
+.PARAMETER OutDir
+    Where the raw results, run-bench.log and the summary are written (default bench\results).
+
+.PARAMETER Hyperfine
+    Path of hyperfine.exe. Default: hyperfine on PATH, then the WinGet links and packages folders.
+
+.PARAMETER ProductDir
+    Folder holding toggle-audio.exe and toggle-audiow.exe (default target\release-build\release,
+    where step 1 builds them).
+
+.PARAMETER LegacyExe
+    Path of the original Switch-Audio.exe proof of concept (a ps2exe build of
+    bench\powershell\switch-audio.ps1 that toggles S/PDIF <-> PG42UQ by name). Its rows are
+    left out when this is not given.
 
 .EXAMPLE
     pwsh -NoProfile -File bench\run-bench.ps1 -SkipBuild
@@ -65,7 +135,8 @@ param(
     [switch]$SkipCold,
     [string]$OutDir = (Join-Path $PSScriptRoot 'results'),
     [string]$Hyperfine,
-    [string]$ProductDir = (Join-Path (Split-Path -Parent $PSScriptRoot) 'target\release-build\release')
+    [string]$ProductDir = (Join-Path (Split-Path -Parent $PSScriptRoot) 'target\release-build\release'),
+    [string]$LegacyExe
 )
 
 $ErrorActionPreference = 'Stop'
@@ -79,7 +150,7 @@ $Pg = '{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}'      # PG42UQ (N
 $Phl = '{0.0.0.00000000}.{5b124733-5d8f-428c-b83c-ee05ce6467fb}'     # PHL BDM4065 (NVIDIA High Definition Audio)
 $Spdif = '{0.0.0.00000000}.{0b317ab3-7e08-4d56-975a-f33b90d5b57a}'   # Digital Audio (S/PDIF), legacy script only
 $Bogus = '{0.0.0.00000000}.{00000000-0000-0000-0000-000000000000}'
-$Legacy = 'C:\bin\Switch-Audio.exe'
+$Legacy = $LegacyExe
 $TaPs1 = Join-Path $Bench 'powershell\ta.ps1'
 $LegacyPs1 = Join-Path $Bench 'powershell\switch-audio.ps1'
 $ToggleWarmup = 2
@@ -331,7 +402,7 @@ Add-Impl 'toggle-audio' "$ProductDir\toggle-audio.exe" 'product' 'product, conso
 Add-Impl 'toggle-audiow' "$ProductDir\toggle-audiow.exe" 'product' 'product, GUI subsystem'
 Add-Impl 'ta-ps' "$Bench\powershell\bin\ta-ps.exe" 'ps2exe' 'ps2exe x64 + detached manifest (WinPS 5.1 engine)'
 Add-Impl 'ta-ps-anycpu' "$Bench\powershell\bin\ta-ps-anycpu.exe" 'ps2exe' 'ps2exe defaults, like the original'
-Add-Impl 'Switch-Audio (legacy)' $Legacy 'legacy' "user's original ps2exe, toggles S/PDIF <-> PG42UQ"
+if ($Legacy) { Add-Impl 'Switch-Audio (legacy)' $Legacy 'legacy' 'original ps2exe proof of concept, toggles S/PDIF <-> PG42UQ' }
 foreach ($i in $impls) { Write-Log ("  {0,-22} {1,10:n0} B  {2}" -f $i.Name, $i.Size, $i.Path) }
 Write-Log "  hyperfine: $hf ($(& $hf --version))"
 Write-Log "  pwsh:      $pwshExe"
@@ -618,14 +689,16 @@ try {
             $outFile = Join-Path $OutDir "$safe.tsv"
             if ($Launcher -eq 'console') {
                 $text = (& $sb -m $Mode -n $N -w $W -- $Exe @A) -join "`n"
-                [IO.File]::WriteAllText($outFile, $text + "`n", [Text.UTF8Encoding]::new($false))
             } else {
                 # G HUB emulation: spawnbench has NO console (DETACHED_PROCESS); its children get flags 0.
                 $cl = "`"$sb`" -m $Mode -n $N -w $W -- `"$Exe`" " + ($A -join ' ')
                 $code = [TaBenchNative]::RunDetached($cl, $outFile, $Repo, 300000)
                 if ($code -ne 0) { Write-Log "  detached spawnbench exit $code for $Label" 'Red' }
-                $text = Get-Content -Raw $outFile
+                $text = (Get-Content -Raw $outFile) -replace "`r`n", "`n"
             }
+            # The header line names the exe; keep this machine's checkout path out of the results.
+            $text = $text.Replace("$Repo\", '<repo>\').TrimEnd("`n")
+            [IO.File]::WriteAllText($outFile, $text + "`n", [Text.UTF8Encoding]::new($false))
             Start-Sleep -Milliseconds 300
             $closed = [TaBenchNative]::CloseNewConsoleWindows($before)
             $s = ConvertFrom-Spawn $text

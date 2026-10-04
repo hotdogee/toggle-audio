@@ -40,7 +40,7 @@ spawnbench [-m MODE] [-n RUNS] [-w WARMUP] [-q] [--] <exe> [args...]
 | `-w`, `--warmup` | Unmeasured warm-up runs, done first (default 5). The first run of a new exe triggers a Defender scan. |
 | `-q`, `--quiet` | Print only the summary. |
 
-Behaviour:
+Behavior:
 - The program is resolved to a full path once, before the first run, and passed as
   `lpApplicationName`. That way the runs do not include `PATH` searching, and forward-slash paths
   such as `bench/c/bin/ta-c.exe` work.
@@ -123,7 +123,7 @@ Wall time in ms, warm. hyperfine: warm-up 10, 200 runs × 3 rounds pooled. spawn
   terminal, that may be a WT window or tab. Keep the run count small and close whatever is left open.
 - **The detached manifest does not stop an explicit `CREATE_NEW_CONSOLE`.** spawnbench's `newconsole`
   mode on `nop-con-detached.exe` therefore shows what an explicit `CREATE_NEW_CONSOLE` costs. It does
-  not show what G HUB does, unless G HUB also passes that flag. To see the no-window behaviour,
+  not show what G HUB does, unless G HUB also passes that flag. To see the no-window behavior,
   launch the exe through ShellExecute (Explorer, `Start-Process`).
 - **Timings include spawnbench's own `CreateProcessW` and wait overhead**, the same for every
   command. Subtract the `nop` result to get the time attributable to the program.

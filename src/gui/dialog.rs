@@ -44,7 +44,7 @@
 //!    and Alt+S work (each mnemonic is unique); Enter saves.
 //! 9. Display scaling 100 %, 150 % and 200 %, and dragging the dialog between monitors with
 //!    different scaling: the dialog manager re-lays out and re-fonts the controls (nothing is
-//!    clipped or blurry, a three-line status fits). The dialog opens centred on the monitor under
+//!    clipped or blurry, a three-line status fits). The dialog opens centered on the monitor under
 //!    the mouse cursor, in front of other windows, with the application icon in the title bar and
 //!    the taskbar.
 //! 10. With the dialog open, run `settings` again: no second dialog appears, the open one comes to
@@ -84,8 +84,8 @@ use windows_core::{HSTRING, PCWSTR};
 use super::ids::{
     IDC_COMMS, IDC_COPY, IDC_DEV1, IDC_DEV2, IDC_PATH, IDC_STATUS, IDC_TEST, IDD_SETTINGS, IDI_APP,
 };
-use super::{OpenReason, clipboard, hotkey_path};
-use crate::audio::{AudioSystem, Endpoint};
+use super::{DialogOutcome, OpenReason, clipboard, hotkey_path};
+use crate::audio::{AudioSystem, Endpoint, same_endpoint_id};
 use crate::config::{self, Config, DeviceRef};
 use crate::error::{ConfigProblem, Error, Result};
 use crate::toggle::{self, Outcome, display_name};
@@ -124,10 +124,10 @@ pub(super) fn run(
     existing: Option<Config>,
     reason: &OpenReason,
     exe_path: &Path,
-) -> Result<Option<Config>> {
+) -> Result<DialogOutcome> {
     let Some(_instance) = InstanceLock::acquire() else {
         activate_open_dialog();
-        return Ok(None);
+        return Ok(DialogOutcome::AlreadyOpen);
     };
     let audio = AudioSystem::new()?;
     let active = audio.list_active()?;
@@ -175,7 +175,10 @@ pub(super) fn run(
             error.code().0
         )));
     }
-    Ok(state.saved.take())
+    Ok(state
+        .saved
+        .take()
+        .map_or(DialogOutcome::Cancelled, DialogOutcome::Saved))
 }
 
 /// Ownership of [`SINGLE_INSTANCE_MUTEX`] for as long as the dialog runs.
@@ -412,7 +415,7 @@ fn find(choices: &[Choice], id: &str) -> Option<usize> {
     }
     choices
         .iter()
-        .position(|choice| choice.device.id.eq_ignore_ascii_case(id))
+        .position(|choice| same_endpoint_id(&choice.device.id, id))
 }
 
 /// The status line text when the dialog opens. `unconfigured` means there is no usable saved
@@ -499,7 +502,7 @@ fn selected_pair(
     let device2 = second
         .and_then(|index| choices.get(index))
         .ok_or(PairProblem::MissingDevice2)?;
-    if device1.device.id.eq_ignore_ascii_case(&device2.device.id) {
+    if same_endpoint_id(&device1.device.id, &device2.device.id) {
         return Err(PairProblem::Same);
     }
     Ok((&device1.device, &device2.device))
@@ -822,7 +825,7 @@ fn set_icons(dialog: HWND, state: &State) {
     }
 }
 
-/// Centres the dialog on the work area of the monitor under the mouse cursor. If that monitor has
+/// Centers the dialog on the work area of the monitor under the mouse cursor. If that monitor has
 /// a different DPI, Per-Monitor V2 sends `WM_DPICHANGED` and the dialog manager rescales.
 fn center_on_cursor_monitor(dialog: HWND) {
     let mut cursor = POINT::default();
@@ -871,7 +874,7 @@ fn int_resource(id: u16) -> PCWSTR {
 }
 
 /// `sizeof(T)` for the `cbSize` / `dwSize` field of a Win32 structure.
-#[allow(
+#[expect(
     clippy::cast_possible_truncation,
     reason = "Win32 structures are a few hundred bytes at most"
 )]
@@ -880,13 +883,13 @@ const fn win32_size_of<T>() -> u32 {
 }
 
 /// `LOWORD`: the control id of a `WM_COMMAND` `wParam`.
-#[allow(clippy::cast_possible_truncation, reason = "masked to 16 bits")]
+#[expect(clippy::cast_possible_truncation, reason = "masked to 16 bits")]
 fn low_word(value: usize) -> u16 {
     (value & 0xFFFF) as u16
 }
 
 /// `HIWORD` (of the low 32 bits): the notification code of a `WM_COMMAND` `wParam`.
-#[allow(clippy::cast_possible_truncation, reason = "masked to 16 bits")]
+#[expect(clippy::cast_possible_truncation, reason = "masked to 16 bits")]
 fn high_word(value: usize) -> u16 {
     ((value >> 16) & 0xFFFF) as u16
 }

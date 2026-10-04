@@ -139,7 +139,7 @@ const PKEY_Device_FriendlyName = PROPERTYKEY{
 
 /// PROPVARIANT is 24 bytes on x64: a 2-byte VARTYPE, three reserved WORDs and a
 /// 16-byte union (its largest members, e.g. BLOB, are a ULONG plus a pointer).
-/// Only the VT_LPWSTR member is used here. A zero-initialised value equals
+/// Only the VT_LPWSTR member is used here. A zero-initialized value equals
 /// PropVariantInit().
 const PROPVARIANT = extern struct {
     vt: u16 = 0,
@@ -315,7 +315,7 @@ fn checkOut(comptime T: type, result: HRESULT, out: ?*T, step: []const u8) Error
 /// - Real console: written with WriteConsoleW so CJK names display correctly.
 ///
 /// The std handle id is a comptime parameter rather than a field so that the
-/// global instances are entirely zero-initialised: their 32 KB arrays then
+/// global instances are entirely zero-initialized: their 32 KB arrays then
 /// land in .bss and add nothing to the file size.
 fn TextBuffer(comptime std_handle_id: DWORD) type {
     return struct {
@@ -474,7 +474,7 @@ fn writeAll(handle: HANDLE, bytes: []const u8) void {
     }
 }
 
-/// UTF-8 staging buffer for writeUtf8. Static (zero-initialised, so in .bss)
+/// UTF-8 staging buffer for writeUtf8. Static (zero-initialized, so in .bss)
 /// rather than on the stack: frames larger than a page would need a stack
 /// probe (__chkstk) from compiler_rt.
 var utf8_scratch: [4096]u8 = @splat(0);

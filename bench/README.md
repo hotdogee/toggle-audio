@@ -83,6 +83,7 @@ pwsh -NoProfile -File bench\run-bench.ps1 -Runs 50 -Rounds 1 -SkipToggle -SkipPo
 | `-SkipBuild`, `-SkipGate`, `-SkipToggle`, `-SkipPowerShell`, `-SkipTiming`, `-SkipSpawn`, `-SkipCold` | off | Skip a step. |
 | `-OutDir` | `bench\results` | Where results go. |
 | `-ProductDir` | `target\release-build\release` | Where the product exes are. |
+| `-LegacyExe` | none | Path of the original `Switch-Audio.exe` proof of concept; its gate and toggle rows are left out when it is not given. |
 
 The product is always run with `APPDATA` pointed at a temporary directory that holds its own configuration, so your real `%APPDATA%\toggle-audio\config.json` is never read or written.
 

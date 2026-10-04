@@ -24,7 +24,7 @@ Toggle Audio does one thing: each run switches the Windows default playback devi
 - [Compatibility](#compatibility)
 - [Troubleshooting](#troubleshooting)
 - [Related tools](#related-tools)
-- [Contributing](#contributing), [License](#license), [Acknowledgements](#acknowledgements)
+- [Contributing](#contributing), [License](#license), [Acknowledgments](#acknowledgments)
 
 ## Features
 
@@ -64,7 +64,7 @@ For silent installs (`msiexec /i toggle-audio-0.1.0-x64.msi /qn` from an elevate
 
 ### Portable zip
 
-`toggle-audio-<version>-x64.zip` on the same Releases page contains `toggle-audio.exe`, `toggle-audiow.exe`, `LICENSE` and this README. Unzip it to a folder of your choice, for example `%LOCALAPPDATA%\Programs\Toggle Audio`, and run `toggle-audiow.exe settings`. Nothing is registered, and to remove it you delete the folder (and `%APPDATA%\toggle-audio\` if you want). Verify the zip against `SHA256SUMS.txt` the same way as the MSI.
+`toggle-audio-<version>-x64.zip` on the same Releases page contains `toggle-audio.exe`, `toggle-audiow.exe`, `LICENSE`, `THIRD-PARTY-NOTICES.txt` and this README. Unzip it to a folder of your choice, for example `%LOCALAPPDATA%\Programs\Toggle Audio`, and run `toggle-audiow.exe settings`. Nothing is registered, and to remove it you delete the folder (and `%APPDATA%\toggle-audio\` if you want). Verify the zip against `SHA256SUMS.txt` the same way as the MSI.
 
 ### Build from source
 
@@ -98,7 +98,7 @@ Coming later, as `Hotdogee.ToggleAudio`, once the first public release is out.
 2. Select the **System** tab. Under **Launch Application**, click **Add Application**.
 3. Fill in the fields:
    - **Name**: `Toggle Audio`
-   - **Path**: paste the path from Copy, without quotes (it is labelled "Program path for Logitech G HUB" in the settings dialog). You can also browse to `C:\Program Files\Toggle Audio\toggle-audiow.exe`.
+   - **Path**: paste the path from Copy, without quotes (it is labeled "Program path for Logitech G HUB" in the settings dialog). You can also browse to `C:\Program Files\Toggle Audio\toggle-audiow.exe`.
    - **Arguments**: leave empty, because toggling is the default command.
 4. Save, then drag the new **Toggle Audio** entry onto a G key. You can also click the key so it is highlighted and then double-click the entry.
 5. Press the key. The default output switches, and no window appears.
@@ -284,10 +284,10 @@ Measured on the reference machine (AMD Ryzen 9 7950X, Windows 11 build 26300, De
 | PowerShell + AudioDeviceCmdlets, `pwsh -File` | – | 731.54 | 418.59 | 435.32 |
 | **Original `Switch-Audio.exe`** (ps2exe script) | 27,648 | – | – | **887.38** |
 
-The `set` column is `set` to the device that is already the default (no-op). ¹ The product skips roles that are already set, so it makes no `SetDefaultEndpoint` calls here, while the bench implementations always make three. Compare the toggle column, where every row makes three real calls.
+The `set` column is `set` to the device that is already the default (no-op). ¹ The product skips roles that are already set, so it makes no `SetDefaultEndpoint` calls here, while the bench implementations always make three. Compare the toggle column, where every row makes three real calls. Sizes are those of the measured builds. The current sources build 523,776-byte product executables (review changes made after the benchmark run, not re-measured) and a 48,640-byte ps2exe exe (its size follows the line endings of `ta.ps1`: the measured build used LF, a Git checkout has CRLF).
 
 - **Every native language is equally fast.** The native rows differ by 1–4 ms, which is inside the jitter of the audio service (σ 2–4 ms). Rust was chosen for safety around the COM code and for maintainability, not for speed.
-- **Why the PowerShell version takes ~900 ms.** An empty Windows PowerShell host takes about 133 ms to start and exit, and a ps2exe exe needs about 200 ms to reach the first script statement, and `Import-Module AudioDeviceCmdlets` adds 47–60 ms. The biggest cost is `Get-AudioDevice -List`, which reads every property of every endpoint (playback and recording) to find one name. It costs about 300 ms per call, and the original script called it twice. The actual switch costs the same ~40 ms as everywhere else.
+- **Why the PowerShell version takes ~900 ms.** An empty Windows PowerShell host takes about 133 ms to start and exit, a ps2exe exe needs about 200 ms to reach the first script statement, and `Import-Module AudioDeviceCmdlets` adds 47–60 ms. The biggest cost is `Get-AudioDevice -List`, which reads every property of every endpoint (playback and recording) to find one name. It costs about 300 ms per call, and the original script called it twice. The actual switch costs the same ~40 ms as everywhere else.
 
 Full results, method and caveats are in [docs/benchmarks.md](docs/benchmarks.md). The implementations and the harness are in [bench/](bench/README.md), and the raw numbers in [bench/RESULTS.md](bench/RESULTS.md).
 
@@ -334,7 +334,9 @@ Bug reports, compatibility notes, benchmark numbers from other machines and pull
 
 [MIT](LICENSE) © 2026 Han Lin
 
-## Acknowledgements
+The executables statically link a few Rust crates (the `windows` crates, serde, serde_json and their dependencies), all under MIT or a choice of licenses that includes MIT. Their notices are in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt), which the MSI and the zip include.
+
+## Acknowledgments
 
 - [AudioDeviceCmdlets](https://github.com/frgnca/AudioDeviceCmdlets) and [SoundSwitch](https://github.com/Belphemur/SoundSwitch), whose open source made the undocumented `IPolicyConfig` interface usable for everyone. AudioDeviceCmdlets also powered the proof of concept this project replaces, and it serves as the independent check in the end-to-end tests and benchmarks.
 - [windows-rs](https://github.com/microsoft/windows-rs) (the `windows` and `windows-core` crates), which makes the Win32 and COM calls from Rust pleasant.

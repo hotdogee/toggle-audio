@@ -1,4 +1,5 @@
-#Requires -Version 7.0
+﻿#Requires -Version 7.0
+
 <#
 .SYNOPSIS
     Generates installer/License.rtf (the license page of the MSI UI) from LICENSE.

@@ -87,7 +87,7 @@ def master():
     """256-unit master design (used for 64 px and up, and for the SVG)."""
     return 256, [
         ("rrect", (8, 8, 248, 248), 56, BG),
-        # speaker: body 36..76, cone to 124, centred at y=128
+        # speaker: body 36..76, cone to 124, centered at y=128
         ("poly", speaker(36, 76, 124, 128, 30, 80), FG),
         # toggle: two opposing arrows on the right
         ("poly", arrow(140, 222, 92, 14, 38, 36), ACCENT),

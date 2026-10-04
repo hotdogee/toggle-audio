@@ -51,8 +51,13 @@ jobs:
             Write-Host "::error::Tag '$tag' does not match Cargo.toml version '$version' (expected 'v$version')."
             exit 1
           }
+          # MSI versions have no pre-release field, so installer/build-msi.ps1 would reject
+          # one later anyway; fail here with a clear message instead.
+          if ($version -match '-') {
+            Write-Host "::error::Pre-release versions ('$version') cannot be released: the MSI version must be plain MAJOR.MINOR.PATCH."
+            exit 1
+          }
           "version=$version" >> $env:GITHUB_OUTPUT
-          "prerelease=$(($version -match '-').ToString().ToLower())" >> $env:GITHUB_OUTPUT
           Write-Host "Releasing Toggle Audio $version"
 
       - name: cargo test
@@ -99,9 +104,9 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           Copy-Item "installer/out/$msiName" $dist
 
-          # Portable zip: both exes + LICENSE + README.md at the zip root
+          # Portable zip: both exes + LICENSE + THIRD-PARTY-NOTICES.txt + README.md at the zip root
           $stage = New-Item -ItemType Directory -Force "stage/toggle-audio-$v-x64"
-          Copy-Item target/release/toggle-audio.exe, target/release/toggle-audiow.exe, LICENSE, README.md $stage
+          Copy-Item target/release/toggle-audio.exe, target/release/toggle-audiow.exe, LICENSE, THIRD-PARTY-NOTICES.txt, README.md $stage
           Compress-Archive -Path "$stage/*" -DestinationPath "$dist/toggle-audio-$v-x64.zip" -CompressionLevel Optimal
 
           # SHA256SUMS.txt in sha256sum format (lowercase hash, two spaces, name; LF; ASCII)
@@ -151,7 +156,6 @@ jobs:
           name: Toggle Audio ${{ steps.version.outputs.version }}
           body_path: release-notes.md
           generate_release_notes: true
-          prerelease: ${{ steps.version.outputs.prerelease == 'true' }}
           fail_on_unmatched_files: true
           files: |
             dist/toggle-audio-${{ steps.version.outputs.version }}-x64.msi

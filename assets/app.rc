@@ -19,7 +19,7 @@
 CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "app.manifest"
 
 // First icon resource in the file = Explorer / shortcut / Apps & features icon.
-IDI_APP ICON "app.ico"
+IDI_APP ICON "icon\\toggle-audio.ico"
 
 // Settings dialog. Units are dialog units (DLU): 4 horizontal DLU = average character width and
 // 8 vertical DLU = character height of the dialog font, so the layout scales with font and DPI.

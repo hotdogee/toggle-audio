@@ -70,7 +70,7 @@ fn main() -> ExitCode {
 ///
 /// Phases: `com_init` after `CoInitializeEx`, `enumerator` after the device
 /// enumerator exists, `work_done` after the command's COM work and output
-/// formatting. All interfaces are released and COM is uninitialised before
+/// formatting. All interfaces are released and COM is uninitialized before
 /// this function returns (on success and on every error path, by drop order).
 fn execute(command: &Command, timing: &mut Timing) -> Result<String, Failure> {
     let apartment = ComApartment::init()?;

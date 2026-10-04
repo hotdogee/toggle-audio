@@ -19,6 +19,7 @@ Initial native release; replaces the PowerShell proof of concept (`Switch-Audio.
 - Per-user configuration in `%APPDATA%\toggle-audio\config.json`, stored by stable endpoint id and written atomically.
 - Per-machine MSI installer (WiX Toolset 7) into `C:\Program Files\Toggle Audio\` with a Start Menu shortcut, App Paths registration, an optional PATH entry, in-place upgrades and clean uninstall.
 - Reproducible benchmarks under `bench/`: optimized implementations in C, Rust, C# NativeAOT, Go and Zig plus PowerShell baselines, a shared CLI contract, a hyperfine harness and published results (`bench/RESULTS.md`, summarized in `docs/benchmarks.md`).
+- `THIRD-PARTY-NOTICES.txt` with the licenses of the statically linked crates, installed by the MSI and included in the zip.
 - Documentation: README with install, hotkey set-up (G HUB and other launchers), command-line and configuration reference, compatibility and troubleshooting notes; `docs/benchmarks.md`; `docs/packaging.md`.
 - Continuous integration (format, lint, tests, release build with a static C runtime check, benchmark builds, MSI build and validation) and tag-driven release automation with the MSI, a portable zip and `SHA256SUMS.txt`.
 

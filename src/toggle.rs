@@ -7,7 +7,7 @@
 
 use std::fmt;
 
-use crate::audio::{AudioSystem, Role, roles_for};
+use crate::audio::{AudioSystem, Role, roles_for, same_endpoint_id};
 use crate::config::DeviceRef;
 use crate::error::{Error, Result};
 
@@ -76,7 +76,8 @@ pub fn choose_target<'a>(
     device2: &'a DeviceRef,
     mut is_active: impl FnMut(&str) -> Result<bool>,
 ) -> Result<Target<'a>> {
-    let is_current = |device: &DeviceRef| current.is_some_and(|id| same_id(id, &device.id));
+    let is_current =
+        |device: &DeviceRef| current.is_some_and(|id| same_endpoint_id(id, &device.id));
     let (preferred, fallback) = if is_current(device1) {
         (device2, None)
     } else {
@@ -118,14 +119,13 @@ pub fn choose_target<'a>(
     })
 }
 
-/// Endpoint ids are ASCII (`{0.0.0.00000000}.{guid}`) and Windows compares them
-/// case-insensitively.
-fn same_id(a: &str, b: &str) -> bool {
-    a.eq_ignore_ascii_case(b)
-}
-
 /// Performs a toggle: reads the current console default's id, applies [`choose_target`] and
 /// makes the chosen device the default for [`roles_for`]`(switch_communications)`.
+///
+/// The configured ids are first looked up with [`AudioSystem::lookup`], so the decision compares
+/// ids as Windows spells them: a configured id in another case, or a stable id that `GetDevice`
+/// also accepts, is still recognized as the current default. A configured id that Windows does
+/// not know is kept as written and counts as inactive.
 ///
 /// `mark` is called with the name of each phase as it ends (`"default_read"`,
 /// `"target_chosen"`, `"set_done"`), which is how `--timing` stamps the hot path; pass `|_| {}`
@@ -133,8 +133,8 @@ fn same_id(a: &str, b: &str) -> bool {
 ///
 /// # Errors
 ///
-/// Whatever [`AudioSystem::default_id`], [`choose_target`] or [`AudioSystem::set_default`]
-/// returns.
+/// Whatever [`AudioSystem::default_id`], [`AudioSystem::lookup`], [`choose_target`] or
+/// [`AudioSystem::set_default`] returns.
 pub fn perform(
     audio: &AudioSystem,
     device1: &DeviceRef,
@@ -144,16 +144,48 @@ pub fn perform(
 ) -> Result<Outcome> {
     let current = audio.default_id(Role::Console)?;
     mark("default_read");
-    let target = choose_target(current.as_deref(), device1, device2, |id| {
-        audio.is_active(id)
+    let (windows1, active1) = as_windows_knows_it(audio, device1)?;
+    let (windows2, active2) = as_windows_knows_it(audio, device2)?;
+    let target = choose_target(current.as_deref(), &windows1, &windows2, |id| {
+        Ok(if id == windows1.id { active1 } else { active2 })
     })?;
     mark("target_chosen");
-    audio.set_default(&target.device.id, roles_for(switch_communications))?;
+    // The console default was read just above; passing it on saves a second read (~1 ms).
+    audio.set_default_known(
+        &target.device.id,
+        roles_for(switch_communications),
+        Some((Role::Console, current.as_deref())),
+    )?;
     mark("set_done");
+    let (configured, other) = if std::ptr::eq(target.device, std::ptr::from_ref(&windows1)) {
+        (device1, device2)
+    } else {
+        (device2, device1)
+    };
+    // Report the configured devices, not the looked-up copies: the only warning names the device
+    // that was not chosen.
+    let warning = target.warning.map(|_| Warning::PreferredUnavailable {
+        preferred: other.clone(),
+    });
     Ok(Outcome {
-        device: target.device.clone(),
-        warning: target.warning,
+        device: configured.clone(),
+        warning,
     })
+}
+
+/// `device` with its id as Windows spells it, and whether it is active. An id Windows does not
+/// know is kept as written and reported inactive.
+fn as_windows_knows_it(audio: &AudioSystem, device: &DeviceRef) -> Result<(DeviceRef, bool)> {
+    let (id, active) = audio
+        .lookup(&device.id)?
+        .unwrap_or_else(|| (device.id.clone(), false));
+    Ok((
+        DeviceRef {
+            id,
+            name: device.name.clone(),
+        },
+        active,
+    ))
 }
 
 /// The name to show for a configured device: its friendly name, or its id when the name is empty.
