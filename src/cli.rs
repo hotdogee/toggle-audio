@@ -200,8 +200,12 @@ Options:
 
 Configuration: %APPDATA%\\toggle-audio\\config.json
 
-Exit codes: 0 success, 1 unexpected error, 2 usage error,
-            3 no or invalid configuration, 4 device not found or not active.
+Exit codes:
+  0  success
+  1  unexpected error
+  2  usage error
+  3  no or invalid configuration
+  4  device not found, not active, or the name matches several devices
 ",
         version = env!("CARGO_PKG_VERSION")
     )
@@ -508,11 +512,11 @@ mod tests {
             "--timing",
             "--comm | --no-comm",
             "\n  --  ",
-            "0 success",
-            "1 unexpected error",
-            "2 usage error",
-            "3 no or invalid configuration",
-            "4 device not found or not active",
+            "\n  0  success\n",
+            "\n  1  unexpected error\n",
+            "\n  2  usage error\n",
+            "\n  3  no or invalid configuration\n",
+            "\n  4  device not found, not active, or the name matches several devices\n",
         ] {
             assert!(help.contains(needle), "help text is missing {needle:?}");
         }

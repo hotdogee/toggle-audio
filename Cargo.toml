@@ -5,6 +5,7 @@ edition = "2024"
 rust-version = "1.85"
 description = "Flip Windows audio output between two devices in milliseconds"
 license = "MIT"
+readme = "README.md"
 repository = "https://github.com/hotdogee/toggle-audio"
 authors = ["Han Lin <hotdogee@gmail.com>"]
 keywords = ["audio", "windows", "default-device", "hotkey", "cli"]

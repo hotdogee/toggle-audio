@@ -127,19 +127,19 @@ bin\ta-ps.exe set "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}"
 
 Commands: `list`, `get`, `set <id>`, `toggle <idA> <idB>`, no arguments (usage, exit 1, module never imported), and `--timing` anywhere. Exit codes: 0 OK, 1 usage, 2 COM/module failure, 3 device not found or not active, 4 no default device.
 
-hyperfine (`-N`, forward slashes, see benchmark-method.md §2.1):
+hyperfine from the repository root (`-N`, forward slashes, see benchmark-method.md §2.1):
 
 ```
 hyperfine -N --warmup 3 --runs 30 ^
-  --command-name ps-ta-list   "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File I:/Projects/toggle-audio/bench/powershell/ta.ps1 list" ^
-  --command-name pwsh-ta-list "pwsh.exe -NoProfile -NonInteractive -File I:/Projects/toggle-audio/bench/powershell/ta.ps1 list" ^
-  --command-name ps2exe-list  "I:/Projects/toggle-audio/bench/powershell/bin/ta-ps.exe list"
+  --command-name ps-ta-list   "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File bench/powershell/ta.ps1 list" ^
+  --command-name pwsh-ta-list "pwsh.exe -NoProfile -NonInteractive -File bench/powershell/ta.ps1 list" ^
+  --command-name ps2exe-list  "bench/powershell/bin/ta-ps.exe list"
 ```
 
 `pwsh.exe` resolves through the App Execution Alias in `%LOCALAPPDATA%\Microsoft\WindowsApps` (measured: same time as the full path). To call the package directly instead, quote the program path *inside* the command string, because `hyperfine -N` splits the string with shell-words rules and would cut an unquoted path at the space in `Program Files`:
 
 ```
---command-name pwsh-ta-list "'C:/Program Files/WindowsApps/Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe/pwsh.exe' -NoProfile -NonInteractive -File I:/Projects/toggle-audio/bench/powershell/ta.ps1 list"
+--command-name pwsh-ta-list "'C:/Program Files/WindowsApps/Microsoft.PowerShell_<version>_x64__8wekyb3d8bbwe/pwsh.exe' -NoProfile -NonInteractive -File bench/powershell/ta.ps1 list"
 ```
 
 That path contains the Store package version and changes with every pwsh update. Look it up with `(Get-AppxPackage Microsoft.PowerShell).InstallLocation`. (`(Get-Command pwsh).Source` returns the alias, not the package path.)

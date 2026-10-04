@@ -66,6 +66,19 @@ jobs:
       - name: Show binary sizes
         run: Get-Item target/release/toggle-audio.exe, target/release/toggle-audiow.exe | Format-Table Name, Length
 
+      # The exes must run without the Visual C++ redistributable: fail if
+      # either imports the dynamic C runtime (+crt-static not applied).
+      - name: Check static C runtime
+        run: |
+          foreach ($exe in 'target/release/toggle-audio.exe', 'target/release/toggle-audiow.exe') {
+            $text = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($exe))
+            foreach ($dll in 'VCRUNTIME140', 'api-ms-win-crt-') {
+              if ($text.IndexOf($dll, [StringComparison]::OrdinalIgnoreCase) -ge 0) {
+                throw "$exe imports $dll*.dll; the C runtime must be linked statically (.cargo/config.toml)."
+              }
+            }
+          }
+
       - uses: actions/upload-artifact@v7
         with:
           name: toggle-audio-exes
@@ -151,36 +164,22 @@ jobs:
     name: MSI (WiX 7)
     runs-on: windows-latest
     needs: rust
-    # ---------------------------------------------------------------------
-    # PENDING installer/: this job is enabled once installer/ lands
-    # (installer/build-msi.ps1 and installer/toggle-audio.wxs). Until then the
-    # "Detect installer sources" step finds no build-msi.ps1 and every later
-    # step is skipped, so the job passes as a no-op. Once installer/ exists it
-    # becomes a required build automatically; no edit to this file is needed.
-    # Expected output: installer/out/toggle-audio-<version>-x64.msi
-    # ---------------------------------------------------------------------
+    # installer/build-msi.ps1 reads the version from Cargo.toml, runs
+    # cargo build --release (warm from the shared cache), wix build and
+    # wix msi validate (ICE), checks ProductVersion and UpgradeCode, and writes
+    # installer/out/toggle-audio-<version>-x64.msi plus a .sha256 file.
     steps:
       - uses: actions/checkout@v7
 
-      - name: Detect installer sources
-        id: detect
-        run: |
-          $present = (Test-Path installer/build-msi.ps1) -and (Test-Path installer/toggle-audio.wxs)
-          "present=$($present.ToString().ToLower())" >> $env:GITHUB_OUTPUT
-          if (-not $present) { Write-Host '::notice::installer/ not present yet; MSI build skipped.' }
-
       - uses: dtolnay/rust-toolchain@stable
-        if: steps.detect.outputs.present == 'true'
 
       # Reuses the rust job's cache (same shared-key) but never writes it.
       - uses: Swatinem/rust-cache@v2
-        if: steps.detect.outputs.present == 'true'
         with:
           shared-key: toggle-audio
           save-if: false
 
       - uses: actions/setup-dotnet@v6
-        if: steps.detect.outputs.present == 'true'
         with:
           dotnet-version: 9.0.x
 
@@ -188,7 +187,6 @@ jobs:
       # see docs/research/packaging.md section 2). Extension versions must
       # match the wix.exe major version.
       - name: Install WiX Toolset 7
-        if: steps.detect.outputs.present == 'true'
         run: |
           dotnet tool install --global wix --version 7.0.0
           wix eula accept wix7
@@ -196,22 +194,13 @@ jobs:
           wix extension add -g WixToolset.Util.wixext/7.0.0
           wix --version
 
-      # build-msi.ps1 reads the version from Cargo.toml, runs
-      # cargo build --release (warm from the shared cache) and wix build.
-      - name: Build MSI
-        if: steps.detect.outputs.present == 'true'
+      - name: Build and validate MSI
         run: ./installer/build-msi.ps1
 
-      - name: Validate MSI (ICE)
-        if: steps.detect.outputs.present == 'true'
-        run: |
-          $msi = Get-ChildItem installer/out/*.msi
-          if (-not $msi) { throw 'build-msi.ps1 produced no installer/out/*.msi' }
-          foreach ($m in $msi) { wix msi validate $m.FullName; if ($LASTEXITCODE) { exit $LASTEXITCODE } }
-
       - uses: actions/upload-artifact@v7
-        if: steps.detect.outputs.present == 'true'
         with:
           name: toggle-audio-msi
-          path: installer/out/*.msi
+          path: |
+            installer/out/*.msi
+            installer/out/*.msi.sha256
           if-no-files-found: error

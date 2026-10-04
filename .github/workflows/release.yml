@@ -74,10 +74,13 @@ jobs:
           wix extension add -g WixToolset.Util.wixext/7.0.0
           wix --version
 
-      # Reads the version from Cargo.toml and writes
+      # Packages the executables built above (-SkipBuild), so the MSI, the zip
+      # and the attestation all cover the same bytes. Reads the version from
+      # Cargo.toml (plain MAJOR.MINOR.PATCH only: MSI versions have no
+      # pre-release field), runs wix build and wix msi validate, and writes
       # installer/out/toggle-audio-<version>-x64.msi.
       - name: Build MSI
-        run: ./installer/build-msi.ps1
+        run: ./installer/build-msi.ps1 -SkipBuild
 
       - name: Stage release assets
         env:

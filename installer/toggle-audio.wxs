@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Toggle Audio: MSI authoring (WiX v4+ schema, built and validated with WiX Toolset 7.0.0).
+
+  Build with installer/build-msi.ps1, which reads the version from Cargo.toml, builds the
+  release executables and runs (from the repository root):
+
+    wix build -arch x64 -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext
+      -d Version=X.Y.Z -d BinDir=target\release [-d ReadmeFile=README.md]
+      -o installer\out\toggle-audio-X.Y.Z-x64.msi installer\toggle-audio.wxs
+
+  Preprocessor variables:
+    Version     required; MSI ProductVersion, three numeric parts (major.minor.patch).
+    BinDir      folder with toggle-audio.exe and toggle-audiow.exe (default: ..\target\release).
+    ReadmeFile  optional; when defined, this file is installed as README.md.
+
+  GUID RULES (read before editing):
+    * UpgradeCode below is the product family identity. NEVER change it, not even when the
+      product is renamed. Changing it breaks upgrades (two entries in Installed apps).
+    * ProductCode is not authored: WiX generates a new one for every build, which is what
+      MajorUpgrade needs. Do not hard-code it.
+    * Component GUIDs are omitted on purpose: WiX derives them from the component's directory
+      and key path, so they stay stable while file names, the install directory and registry
+      key paths stay the same. If you hard-code one instead, it must change whenever the key
+      path or target directory changes, and must never be reused for something else.
+    * Never put the version in the install directory name: G HUB and other launchers bind
+      the full exe path, which must survive upgrades.
+
+  Note: XML comments must not contain two consecutive hyphens (WIX0104), so command line
+  switches are written with single dashes above.
+-->
+<?ifndef Version?>
+  <?error Pass -d Version=X.Y.Z (the [package] version from Cargo.toml) ?>
+<?endif?>
+<?ifndef BinDir?>
+  <?define BinDir = "$(sys.SOURCEFILEDIR)..\target\release" ?>
+<?endif?>
+<?define RepoRoot = "$(sys.SOURCEFILEDIR).." ?>
+<?define ProductName = "Toggle Audio" ?>
+<?define Manufacturer = "Han Lin" ?>
+<?define RepoUrl = "https://github.com/hotdogee/toggle-audio" ?>
+<?define UpgradeCode = "C82A4013-F2FF-448E-A4AE-63CD73760A63" ?>
+
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <Package Name="$(var.ProductName)"
+           Manufacturer="$(var.Manufacturer)"
+           Version="$(var.Version)"
+           UpgradeCode="$(var.UpgradeCode)"
+           Scope="perMachine"
+           InstallerVersion="500"
+           Language="1033"
+           Compressed="yes">
+
+    <SummaryInformation Description="$(var.ProductName) $(var.Version) installer" />
+
+    <!-- The old version is removed completely before the new one is installed.
+         Feature selections (for example PATH off) carry over to the new version. -->
+    <MajorUpgrade Schedule="afterInstallInitialize"
+                  DowngradeErrorMessage="A newer version of [ProductName] is already installed. Uninstall it first if you want to install this older version." />
+
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <!-- The Id must end in .ico (same extension as the source) because the shortcut uses it. -->
+    <Icon Id="AppIcon.ico" SourceFile="$(var.RepoRoot)\assets\icon\toggle-audio.ico" />
+
+    <!-- Installed apps / Add or Remove Programs entry. ARPNOMODIFY is intentionally not set:
+         with the feature tree UI, Modify lets the user add or remove the PATH entry later. -->
+    <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
+    <Property Id="ARPCOMMENTS" Value="Flip Windows audio output between two devices in milliseconds." />
+    <Property Id="ARPURLINFOABOUT" Value="$(var.RepoUrl)" />
+    <Property Id="ARPHELPLINK" Value="$(var.RepoUrl)/issues" />
+    <Property Id="ARPURLUPDATEINFO" Value="$(var.RepoUrl)/releases" />
+
+    <!-- UI: Welcome, License, Custom Setup (feature tree with the "Add to PATH" choice and a
+         Browse button for the install folder), Ready to install. -->
+    <ui:WixUI Id="WixUI_FeatureTree" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(sys.SOURCEFILEDIR)License.rtf" />
+
+    <!-- C:\Program Files\Toggle Audio (unversioned on purpose, see GUID RULES above) -->
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="$(var.ProductName)" />
+    </StandardDirectory>
+
+    <!-- ===== Main feature: always installed ===== -->
+    <Feature Id="Main"
+             Title="$(var.ProductName)"
+             Description="The toggle-audio.exe and toggle-audiow.exe executables, the Start Menu shortcut to the settings dialog and the App Paths registration."
+             Level="1"
+             AllowAbsent="no"
+             AllowAdvertise="no"
+             Display="expand"
+             ConfigurableDirectory="INSTALLFOLDER">
+
+      <!-- Console-subsystem CLI: for terminals and scripts; also bindable on Win11 24H2+. -->
+      <Component Id="ToggleAudioExe" Directory="INSTALLFOLDER">
+        <File Id="ToggleAudioExe" Source="$(var.BinDir)\toggle-audio.exe" KeyPath="yes" />
+        <!-- App Paths: Win+R and Start search find toggle-audio without PATH. -->
+        <RegistryKey Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\toggle-audio.exe">
+          <RegistryValue Type="string" Value="[#ToggleAudioExe]" />
+          <RegistryValue Type="string" Name="Path" Value="[INSTALLFOLDER]" />
+        </RegistryKey>
+      </Component>
+
+      <!-- GUI-subsystem build of the same program: never creates a console. -->
+      <Component Id="ToggleAudiowExe" Directory="INSTALLFOLDER">
+        <File Id="ToggleAudiowExe" Source="$(var.BinDir)\toggle-audiow.exe" KeyPath="yes">
+          <!-- Advertised shortcut as a child of the File: passes ICE43 and ICE57 (a
+               non-advertised one here fails validation), lives in the all-users Start menu
+               root, is removed with the component and needs no HKCU key path. -->
+          <Shortcut Id="SettingsStartMenuShortcut"
+                    Directory="ProgramMenuFolder"
+                    Name="$(var.ProductName) Settings"
+                    Description="Choose the two playback devices to toggle between"
+                    Arguments="settings"
+                    WorkingDirectory="INSTALLFOLDER"
+                    Icon="AppIcon.ico"
+                    Advertise="yes" />
+        </File>
+        <RegistryKey Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\toggle-audiow.exe">
+          <RegistryValue Type="string" Value="[#ToggleAudiowExe]" />
+          <RegistryValue Type="string" Name="Path" Value="[INSTALLFOLDER]" />
+        </RegistryKey>
+      </Component>
+
+      <Component Id="LicenseFile" Directory="INSTALLFOLDER">
+        <File Id="LicenseTxt" Source="$(var.RepoRoot)\LICENSE" Name="LICENSE.txt" KeyPath="yes" />
+      </Component>
+
+<?ifdef ReadmeFile?>
+      <Component Id="ReadmeFile" Directory="INSTALLFOLDER">
+        <File Id="ReadmeMd" Source="$(var.ReadmeFile)" Name="README.md" KeyPath="yes" />
+      </Component>
+<?endif?>
+    </Feature>
+
+    <!-- ===== Optional: append the install folder to the system PATH (on by default) =====
+         Deselect it in the Custom Setup page, or on the command line with ADDLOCAL=Main. -->
+    <Feature Id="PathEnv"
+             Title="Add to PATH"
+             Description="Append the install folder to the system PATH so toggle-audio runs from any terminal. Already open terminals do not see the change."
+             Level="1"
+             AllowAbsent="yes"
+             AllowAdvertise="no">
+      <Component Id="PathEntry" Directory="INSTALLFOLDER">
+        <Environment Id="PathEntry" Name="PATH" Value="[INSTALLFOLDER]"
+                     Part="last" Action="set" System="yes" Permanent="no" />
+        <!-- A component needs a key path; use a value under the product's own HKLM key. -->
+        <RegistryValue Root="HKLM" Key="SOFTWARE\$(var.ProductName)" Name="PathEntry"
+                       Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </Feature>
+  </Package>
+</Wix>

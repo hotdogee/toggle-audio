@@ -46,25 +46,30 @@ Only needed to build or run the benchmark implementations. CI compiles all of th
 
 | Tool | Used by | Install |
 | --- | --- | --- |
-| MSVC (from the Build Tools above) | `bench/c` | already installed |
-| Go | `bench/go` | `winget install GoLang.Go` |
-| Zig | `bench/zig` | `winget install zig.zig` |
+| PowerShell 7 | every `build.ps1` and `bench/run-bench.ps1` | `winget install Microsoft.PowerShell` |
+| MSVC and the Windows SDK (from the Build Tools above) | `bench/c`, `bench/baseline`, the NativeAOT linker, `mt.exe` for Go and PowerShell | already installed |
+| Go 1.21 or later | `bench/go` | `winget install GoLang.Go` |
+| Zig 0.17.x | `bench/zig` | `winget install zig.zig` |
 | .NET 9 SDK (NativeAOT) | `bench/csharp` | `winget install Microsoft.DotNet.SDK.9` |
+| ps2exe 1.0.17 | `bench/powershell` | `Install-Module ps2exe -Scope CurrentUser` (in Windows PowerShell) |
+| AudioDeviceCmdlets | `bench/powershell` and the oracle in `bench/run-bench.ps1` and `scripts/e2e.ps1` | `Install-Module AudioDeviceCmdlets -Scope CurrentUser` (in Windows PowerShell) |
 | hyperfine | `bench/run-bench.ps1` | `winget install sharkdp.hyperfine` or `cargo install hyperfine` |
 
-Each `bench/<lang>/` directory has its own README and build script; `bench/run-bench.ps1` runs the whole suite and writes raw results under `bench/results/`. See [`bench/RESULTS.md`](bench/RESULTS.md) for methodology and published numbers. Benchmarks that really toggle change your default playback device; the harness restores it afterwards.
+Each `bench/<lang>/` directory has its own README and `build.ps1` (for example `pwsh -File bench\c\build.ps1`). `pwsh -NoProfile -File bench\run-bench.ps1` builds and runs the whole suite and writes raw results to `bench/results/`. See [`bench/README.md`](bench/README.md) for the parameters, [`bench/RESULTS.md`](bench/RESULTS.md) for the published numbers and [`docs/benchmarks.md`](docs/benchmarks.md) for the write-up. The real-toggle scenarios change your default playback device. The harness restores it afterwards, but the device ids are constants at the top of `run-bench.ps1`, so set them for your machine or pass `-SkipToggle`.
 
 ### Optional: installer (`installer/`)
 
 The MSI is built with **WiX Toolset 7**, installed as a .NET global tool (needs a .NET SDK, for example the .NET 9 SDK above):
 
 ```powershell
-dotnet tool install --global wix --version 7.*
+dotnet tool install --global wix --version 7.0.0
 wix eula accept wix7
+wix extension add -g WixToolset.UI.wixext/7.0.0
+wix extension add -g WixToolset.Util.wixext/7.0.0
 .\installer\build-msi.ps1
 ```
 
-`build-msi.ps1` reads the version from `Cargo.toml`, runs `cargo build --release` and `wix build`, and writes the MSI to `installer/out/`. `wix msi validate` checks the package without administrator rights. Installing, upgrading and uninstalling the MSI needs UAC, so test those on a machine or VM you do not mind changing.
+`build-msi.ps1` reads the version from `Cargo.toml`, runs `cargo build --release` and `wix build`, validates the package with `wix msi validate` (no administrator rights needed) and writes the MSI and its SHA256 to `installer/out/`. Installing, upgrading and uninstalling the MSI needs UAC, so test those on a machine or VM you do not mind changing. [`docs/packaging.md`](docs/packaging.md) covers what the MSI installs, silent installs, upgrades, the GUID rules and the winget plan.
 
 ## Checks before you push
 
@@ -80,25 +85,35 @@ Expectations:
 
 - **Formatting:** `cargo fmt --all` with the repository's `rustfmt.toml`. No manual style debates.
 - **Lints:** clippy (including the `pedantic` group configured in `Cargo.toml`) must be clean with `-D warnings`. If you need an `#[allow(...)]`, keep it as narrow as possible and add a comment explaining why.
-- **Unsafe code:** `unsafe` is allowed only in `src/audio.rs`, `src/console.rs` and `src/gui/`. Every `unsafe` block needs a `// SAFETY:` comment stating the invariant it relies on.
+- **Unsafe code:** `unsafe` is allowed only where the Win32 and COM calls live: `src/audio.rs`, `src/console.rs`, `src/gui/`, the known-folder fallback in `src/config.rs`, `src/timing.rs` and the enumeration helper in `tests/real_device.rs`. Every `unsafe` block needs a `// SAFETY:` comment stating the invariant it relies on.
 - **Tests:** new logic comes with unit tests. Keep pure logic (toggle decision, config parsing, CLI parsing, encoding helpers) separate from COM so it can be tested on CI runners, which have no audio devices.
 - **Dependencies:** the startup-time budget and the zero-runtime-dependency goal matter. Discuss any new crate in an issue before adding it.
 
 ### Real-device tests
 
-Tests that touch real audio endpoints are marked `#[ignore]` because hosted CI has no audio devices and because they **change your default playback device** (they restore the original one afterwards, even on panic). Run them on a machine with at least two active playback devices:
+Tests that touch real audio endpoints live in `tests/real_device.rs` and are marked `#[ignore]`, because hosted CI has no audio devices. Run them on a machine with at least one active playback device. By default they are read-only: the only `set` calls target the device that already is the default.
 
 ```powershell
 cargo test -- --ignored
 ```
 
-The end-to-end script builds the release binaries, runs `list` and `get`, toggles back and forth, checks the result against an independent oracle (the AudioDeviceCmdlets PowerShell module) and restores the original default:
+The round-trip test really toggles, so it runs only when you name two active playback endpoints (ids from `toggle-audio list`). A guard restores every role's original default afterwards, even when an assertion fails:
 
 ```powershell
-.\scripts\e2e.ps1
+$env:TOGGLE_AUDIO_TEST_DEVICES = '{0.0.0.00000000}.{...};{0.0.0.00000000}.{...}'
+cargo test --test real_device -- --ignored toggle_round_trip
 ```
 
-Read the parameters at the top of `scripts/e2e.ps1` first and point it at two devices on your machine. Please mention in your pull request whether you ran the real-device tests and on which Windows build.
+`scripts/e2e.ps1` is the end-to-end check. It builds the release binaries and runs `--version`, `--help`, usage errors, `list`, `get`, `set` and `--timing` through both exes, comparing the results with an independent oracle (the AudioDeviceCmdlets module). It then toggles between two devices and verifies every step. It points `APPDATA` at a scratch directory, so your real configuration is never touched, and it restores the original default devices at the end. The default `-Device1` / `-Device2` ids belong to the reference machine, so pass your own:
+
+```powershell
+pwsh scripts/e2e.ps1 -SkipToggle                                    # read-only checks only
+pwsh scripts/e2e.ps1 -Device1 '{0.0.0.00000000}.{...}' -Device2 '{0.0.0.00000000}.{...}' -Rounds 2
+pwsh scripts/e2e.ps1 -SkipBuild                                     # test the existing release build (honours CARGO_TARGET_DIR)
+pwsh scripts/e2e.ps1 -Exe path\to\toggle-audio.exe                 # test specific binaries (toggle-audiow.exe next to it)
+```
+
+Please mention in your pull request whether you ran the real-device tests and on which Windows build.
 
 ## Commit messages
 
@@ -130,4 +145,4 @@ Pull requests are squash-merged, so the pull request title becomes the commit me
 
 ## Releases (maintainer notes)
 
-Versions follow [Semantic Versioning](https://semver.org/) and the changelog follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). To release: move the `[Unreleased]` entries into a new version section with the release date, bump `version` in `Cargo.toml`, commit, and push a `vMAJOR.MINOR.PATCH` tag. The release workflow checks that the tag matches `Cargo.toml`, builds the executables, MSI, portable zip and `SHA256SUMS`, and publishes the GitHub Release. The MSI `UpgradeCode` must never change.
+Versions follow [Semantic Versioning](https://semver.org/) and the changelog follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). To release: move the `[Unreleased]` entries into a new version section with the release date, bump `version` in `Cargo.toml` and the `assemblyIdentity` version in `assets/app.manifest` (a unit test fails when they differ), commit, and push a `vMAJOR.MINOR.PATCH` tag. The release workflow checks that the tag matches `Cargo.toml`, builds the executables, MSI, portable zip and `SHA256SUMS.txt`, and publishes the GitHub Release. The MSI `UpgradeCode` must never change.
