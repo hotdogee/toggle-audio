@@ -1,0 +1,32 @@
+# Rust
+/target/
+**/target/
+# Bench build outputs (keep sources, drop binaries and intermediates)
+bench/**/bin/
+bench/**/obj/
+bench/**/*.exe
+bench/**/*.obj
+bench/**/*.pdb
+bench/**/*.ilk
+bench/**/*.res
+bench/**/.zig-cache/
+bench/**/zig-out/
+bench/results/*.json
+# .NET
+**/bin/
+**/obj/
+# Installer outputs
+installer/out/
+*.msi
+*.wixpdb
+*.wixobj
+# Editors / OS
+.vs/
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+desktop.ini
+# Logs and scratch
+*.log
+scratch/
