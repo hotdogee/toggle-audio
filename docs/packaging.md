@@ -167,7 +167,7 @@ No certificate gives instant SmartScreen trust any more, the individual tier of 
 
 ## winget
 
-Planned package identifier: `Hotdogee.ToggleAudio`. Submit after the first public release, to [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs) (manifest schema 1.12.0, three files: version, defaultLocale, installer).
+Package identifier: `Hotdogee.ToggleAudio`. The first submission to [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs) is [pull request #446595](https://github.com/microsoft/winget-pkgs/pull/446595) (manifest schema 1.12.0, three files: version, defaultLocale, installer). The manifests for each released version are kept under `installer/winget/<version>/` and validated with `winget validate --manifest installer/winget/<version>`. Later releases are submitted by `.github/workflows/winget.yml` (vedantmgoyal9/winget-releaser), which needs a classic personal access token with the `public_repo` scope stored as the `WINGET_TOKEN` repository secret and a fork of winget-pkgs under the same account (created by the first `wingetcreate submit`).
 
 Fields that stay the same in every release:
 

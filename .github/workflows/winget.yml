@@ -1,0 +1,42 @@
+# Publishes each new GitHub Release to winget (microsoft/winget-pkgs) by opening a
+# pull request from the maintainer's fork with an updated Hotdogee.ToggleAudio manifest.
+#
+# Requirements (one-time):
+#   - A fork of microsoft/winget-pkgs under the token owner's account (the first manual
+#     "wingetcreate submit" creates it).
+#   - A classic personal access token with the "public_repo" scope stored as the
+#     repository secret WINGET_TOKEN (fine-grained tokens cannot push to the fork).
+#
+# The action downloads the release MSI, reads its ProductCode, computes the SHA256 and
+# bumps the manifests found under manifests/h/Hotdogee/ToggleAudio/<previous version>.
+# Action version checked 2026-10-04: vedantmgoyal9/winget-releaser v2.
+
+name: winget
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish (for example v0.1.0)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  winget:
+    name: Submit to winget-pkgs
+    runs-on: ubuntu-latest
+    # Skip pre-releases: the MSI version has no pre-release field.
+    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.release.prerelease }}
+    steps:
+      - uses: vedantmgoyal9/winget-releaser@v2
+        with:
+          identifier: Hotdogee.ToggleAudio
+          installers-regex: '\.msi$'
+          max-versions-to-keep: 5
+          release-tag: ${{ inputs.tag || github.event.release.tag_name }}
+          token: ${{ secrets.WINGET_TOKEN }}

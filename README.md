@@ -81,7 +81,13 @@ Both exes end up in `target\release\`. To build the MSI as well, see [docs/packa
 
 ### winget
 
-Coming later, as `Hotdogee.ToggleAudio`, once the first public release is out.
+Submitted to microsoft/winget-pkgs as `Hotdogee.ToggleAudio` ([pull request #446595](https://github.com/microsoft/winget-pkgs/pull/446595)). Once it is merged:
+
+```powershell
+winget install Hotdogee.ToggleAudio
+```
+
+The manifests are kept in [`installer/winget/`](installer/winget/), and the [`winget` workflow](.github/workflows/winget.yml) submits each new release automatically.
 
 ## Quick start: bind a hotkey
 

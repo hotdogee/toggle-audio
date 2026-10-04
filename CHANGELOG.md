@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- winget manifests for `Hotdogee.ToggleAudio` under `installer/winget/` and a `winget` workflow that submits each new release to microsoft/winget-pkgs.
 
 ## [0.1.0] - 2026-10-04
 
