@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.1.0] - 2026-10-04
+
 Initial native release; replaces the PowerShell proof of concept (`Switch-Audio.exe`, built with ps2exe, about 900 ms per toggle).
 
 ### Added
@@ -23,4 +27,5 @@ Initial native release; replaces the PowerShell proof of concept (`Switch-Audio.
 - Documentation: README with install, hotkey set-up (G HUB and other launchers), command-line and configuration reference, compatibility and troubleshooting notes; `docs/benchmarks.md`; `docs/packaging.md`.
 - Continuous integration (format, lint, tests, release build with a static C runtime check, benchmark builds, MSI build and validation) and tag-driven release automation with the MSI, a portable zip and `SHA256SUMS.txt`.
 
-[Unreleased]: https://github.com/hotdogee/toggle-audio/commits/main
+[Unreleased]: https://github.com/hotdogee/toggle-audio/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/hotdogee/toggle-audio/releases/tag/v0.1.0
