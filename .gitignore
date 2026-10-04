@@ -12,9 +12,9 @@ bench/**/*.res
 bench/**/.zig-cache/
 bench/**/zig-out/
 bench/results/*.json
-# .NET
-**/bin/
-**/obj/
+# .NET build outputs (scoped: a bare **/bin/ would also ignore src/bin/)
+installer/**/bin/
+installer/**/obj/
 # Installer outputs
 installer/out/
 *.msi

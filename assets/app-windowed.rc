@@ -1,0 +1,4 @@
+// Resources for toggle-audiow.exe: everything in app.rc, with its own file name in VERSIONINFO.
+// A separate file is needed because embed-resource names its output after the .rc file.
+#define BIN_NAME "toggle-audiow"
+#include "app.rc"

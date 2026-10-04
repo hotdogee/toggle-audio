@@ -588,7 +588,7 @@ Known quirks:
 ## Pitfalls checklist
 
 - [ ] **Free every `GetId()` string with `CoTaskMemFree`**, and every `PropVariantToStringAlloc` result too.
-- [ ] **`PropVariantInit` before and `PropVariantClear` after** every `IPropertyStore::GetValue`. In windows 0.62 `PROPVARIANT` has no Drop.
+- [ ] **`PropVariantInit` before and `PropVariantClear` after** every `IPropertyStore::GetValue`. windows 0.62's `PROPVARIANT` implements `Drop` (it calls `PropVariantClear`). An explicit `PropVariantClear` is still fine and makes the release point explicit. With windows-sys, or in C, you must clear it yourself.
 - [ ] Check `pv.vt == VT_LPWSTR` (31) before reading `pwszVal`. A missing name is `VT_EMPTY`.
 - [ ] C: **define `CLSID_MMDeviceEnumerator` / `IID_IMMDeviceEnumerator` yourself** (`initguid.h` + `DEFINE_GUID`), or LNK2019 follows. Include `initguid.h` in only one TU, or use `DECLSPEC_SELECTANY`.
 - [ ] Use **`PKEY_Device_FriendlyName` (pid 14)** for display. Never use names as identity, because duplicate names exist (3× "PG42UQ …" on this PC).

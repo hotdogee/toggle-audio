@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <!-- version is the Cargo.toml version plus ".0"; a unit test (gui::tests) fails when they differ. -->
+  <assemblyIdentity type="win32" name="Hotdogee.ToggleAudio" version="0.1.0.0" processorArchitecture="*"/>
+  <!-- Common Controls v6: visual styles for the settings dialog (themed buttons, combo boxes, checkbox). -->
+  <dependency>
+    <dependentAssembly>
+      <assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0"
+                        processorArchitecture="*" publicKeyToken="6595b64144ccf1df" language="*"/>
+    </dependentAssembly>
+  </dependency>
+  <!-- Never elevate: run with the caller's token (G HUB, Explorer, a terminal). -->
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+    <security>
+      <requestedPrivileges>
+        <requestedExecutionLevel level="asInvoker" uiAccess="false"/>
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+  <!-- Declare Windows 10/11 support (otherwise some APIs report an older OS version). -->
+  <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
+    <application>
+      <supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}"/>
+    </application>
+  </compatibility>
+  <application xmlns="urn:schemas-microsoft-com:asm.v3">
+    <windowsSettings>
+      <!-- dpiAware is the fallback for Windows 10 before 1607; dpiAwareness wins on 1607 and later. -->
+      <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/pm</dpiAware>
+      <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2, PerMonitor</dpiAwareness>
+      <!-- Windows 11 24H2+: a console-subsystem exe (toggle-audio.exe) launched from a GUI process
+           (G HUB, Explorer) gets no console window; launched from a terminal it inherits that console.
+           Ignored by older Windows versions and irrelevant for the GUI-subsystem toggle-audiow.exe. -->
+      <consoleAllocationPolicy xmlns="http://schemas.microsoft.com/SMI/2024/WindowsSettings">detached</consoleAllocationPolicy>
+    </windowsSettings>
+  </application>
+</assembly>
