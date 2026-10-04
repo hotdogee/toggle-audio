@@ -20,7 +20,7 @@
 
 use std::cell::Cell;
 
-use windows::Win32::Foundation::{GetLastError, HANDLE, NO_ERROR};
+use windows::Win32::Foundation::{GetLastError, HANDLE, HWND, NO_ERROR, POINT};
 use windows::Win32::Storage::FileSystem::{FILE_TYPE_UNKNOWN, GetFileType, WriteFile};
 use windows::Win32::System::Console::{
     ATTACH_PARENT_PROCESS, AttachConsole, CONSOLE_MODE, FreeConsole, GetConsoleMode,
@@ -28,10 +28,11 @@ use windows::Win32::System::Console::{
     WriteConsoleW,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    MB_ICONERROR, MB_ICONINFORMATION, MB_OK, MB_SETFOREGROUND, MB_TOPMOST, MESSAGEBOX_STYLE,
-    MessageBoxW,
+    CreateWindowExW, DestroyWindow, GetCursorPos, MB_ICONERROR, MB_ICONINFORMATION, MB_OK,
+    MB_SETFOREGROUND, MB_TOPMOST, MESSAGEBOX_STYLE, MessageBoxW, WS_EX_TOOLWINDOW, WS_EX_TOPMOST,
+    WS_POPUP,
 };
-use windows_core::PCWSTR;
+use windows_core::{PCWSTR, w};
 
 /// Largest number of UTF-16 code units passed to one `WriteConsoleW` call. Old consoles failed on
 /// buffers above 64 KiB; small chunks also keep every length far below `u32::MAX`.
@@ -216,19 +217,70 @@ impl Output {
 }
 
 /// An OK-only, topmost message box with `icon`, brought to the foreground.
+///
+/// The box is owned by a [`TopmostOwner`]: a process started by a background program (G HUB
+/// reacting to a hotkey, Explorer) may not take the foreground, and Windows 11 then creates an
+/// unowned `MB_TOPMOST` box without `WS_EX_TOPMOST` at the bottom of the z-order, hidden behind
+/// every other window. A window owned by a topmost window is topmost itself, so the box stays
+/// visible even when the foreground request is refused. The owner sits at the mouse cursor, so the
+/// box opens centred on the monitor the user is working on, like the settings dialog.
 fn message_box(title: &str, text: &str, icon: MESSAGEBOX_STYLE) {
     let text = to_wide_nul(text);
     let title = to_wide_nul(title);
-    // SAFETY: both buffers are NUL-terminated UTF-16 strings that outlive the call; a `None` owner
-    // window is allowed. The return value (which button closed the box) is irrelevant for an
-    // OK-only box.
+    let owner = TopmostOwner::create();
+    // SAFETY: both buffers are NUL-terminated UTF-16 strings that outlive the call; the owner is
+    // `None` or a window of this thread that stays alive until `owner` is dropped after the call.
+    // The return value (which button closed the box) is irrelevant for an OK-only box.
     unsafe {
         MessageBoxW(
-            None,
+            owner.0,
             PCWSTR(text.as_ptr()),
             PCWSTR(title.as_ptr()),
             MB_OK | icon | MB_TOPMOST | MB_SETFOREGROUND,
         );
+    }
+}
+
+/// A hidden, zero-size, topmost tool window at the mouse cursor that owns a message box (see
+/// [`message_box`]). Destroyed on drop. Holds `None` when it cannot be created; the box is then
+/// shown unowned, which is still better than no box.
+struct TopmostOwner(Option<HWND>);
+
+impl TopmostOwner {
+    fn create() -> Self {
+        let mut cursor = POINT::default();
+        // SAFETY: `cursor` is a valid, writable POINT. On failure it stays at (0, 0), which is on
+        // the primary monitor.
+        let _ = unsafe { GetCursorPos(&raw mut cursor) };
+        // SAFETY: "STATIC" is a system window class and both strings are NUL-terminated literals;
+        // no parent, menu, instance or creation data. WS_POPUP without WS_VISIBLE is never shown,
+        // and WS_EX_TOOLWINDOW keeps it out of the taskbar and Alt+Tab.
+        let window = unsafe {
+            CreateWindowExW(
+                WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
+                w!("STATIC"),
+                w!(""),
+                WS_POPUP,
+                cursor.x,
+                cursor.y,
+                0,
+                0,
+                None,
+                None,
+                None,
+                None,
+            )
+        };
+        Self(window.ok())
+    }
+}
+
+impl Drop for TopmostOwner {
+    fn drop(&mut self) {
+        if let Some(window) = self.0 {
+            // SAFETY: `window` was created by this thread in `create` and is destroyed exactly once.
+            let _ = unsafe { DestroyWindow(window) };
+        }
     }
 }
 

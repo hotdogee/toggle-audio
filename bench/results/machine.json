@@ -1,0 +1,13 @@
+{
+  "date": "2026-10-04 20:30:49 +08:00",
+  "cpu": "AMD Ryzen 9 7950X 16-Core Processor",
+  "logical": 32,
+  "ram_gb": 127.1,
+  "os": "Microsoft Windows 11 專業工作站版 10.0.26300.0",
+  "ubr": 9550,
+  "power_plan": "電源配置 GUID: e9a42b02-d5df-448d-aa00-03f14749eb61  (終極效能)",
+  "hyperfine": "hyperfine 1.20.0",
+  "pwsh": "7.6.6",
+  "defender_rtp": true,
+  "smart_app_control": 0
+}

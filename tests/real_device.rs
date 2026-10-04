@@ -28,6 +28,7 @@
 )]
 
 use std::ffi::c_void;
+use std::sync::{Mutex, MutexGuard, PoisonError};
 
 use toggle_audio::Error;
 use toggle_audio::audio::{AudioSystem, Endpoint, Role, roles_for};
@@ -46,6 +47,18 @@ const DEVICES_VAR: &str = "TOGGLE_AUDIO_TEST_DEVICES";
 /// A well-formed render endpoint id that no system has: `GetDevice` returns `E_NOTFOUND`.
 const UNKNOWN_ID: &str = "{0.0.0.00000000}.{00000000-0000-0000-0000-000000000000}";
 
+/// Serializes the tests in this file. The test harness runs tests on parallel threads, and the
+/// round-trip test switches the default device while it runs: a read-only test that reads the
+/// defaults at that moment sees a transient state (and `setting_the_current_default_changes_nothing`
+/// would re-assert a stale default after the round trip restored the original one). Every test
+/// holds this lock for its whole body; a panic in one test must not fail the others, so a poisoned
+/// lock is taken over.
+static SERIAL: Mutex<()> = Mutex::new(());
+
+fn serial() -> MutexGuard<'static, ()> {
+    SERIAL.lock().unwrap_or_else(PoisonError::into_inner)
+}
+
 /// The default endpoint for every role, in [`ALL_ROLES`] order.
 fn defaults(audio: &AudioSystem) -> toggle_audio::Result<Vec<Option<Endpoint>>> {
     ALL_ROLES
@@ -63,6 +76,7 @@ fn console_default(audio: &AudioSystem) -> toggle_audio::Result<Endpoint> {
 #[test]
 #[ignore = "needs a Windows machine with an active playback device"]
 fn enumeration_is_not_empty() -> toggle_audio::Result<()> {
+    let _serial = serial();
     let audio = AudioSystem::new()?;
     let endpoints = audio.list_active()?;
     assert!(!endpoints.is_empty(), "no active playback endpoints");
@@ -79,6 +93,7 @@ fn enumeration_is_not_empty() -> toggle_audio::Result<()> {
 #[test]
 #[ignore = "needs a Windows machine with an active playback device"]
 fn enumeration_contains_the_default_device() -> toggle_audio::Result<()> {
+    let _serial = serial();
     let audio = AudioSystem::new()?;
     let default = console_default(&audio)?;
     let endpoints = audio.list_active()?;
@@ -92,6 +107,7 @@ fn enumeration_contains_the_default_device() -> toggle_audio::Result<()> {
 #[test]
 #[ignore = "needs a Windows machine with an active playback device"]
 fn every_role_has_an_active_default() -> toggle_audio::Result<()> {
+    let _serial = serial();
     let audio = AudioSystem::new()?;
     for (role, default) in ALL_ROLES.iter().zip(defaults(&audio)?) {
         let default = default.unwrap_or_else(|| panic!("no default for {role:?}"));
@@ -104,6 +120,7 @@ fn every_role_has_an_active_default() -> toggle_audio::Result<()> {
 #[test]
 #[ignore = "needs a Windows machine with an active playback device"]
 fn ids_are_matched_case_insensitively() -> toggle_audio::Result<()> {
+    let _serial = serial();
     let audio = AudioSystem::new()?;
     let default = console_default(&audio)?;
     assert!(audio.is_active(&default.id.to_uppercase())?);
@@ -113,6 +130,7 @@ fn ids_are_matched_case_insensitively() -> toggle_audio::Result<()> {
 #[test]
 #[ignore = "needs a Windows machine with an active playback device"]
 fn unknown_and_malformed_ids_are_reported_as_missing() -> toggle_audio::Result<()> {
+    let _serial = serial();
     let audio = AudioSystem::new()?;
     for id in [UNKNOWN_ID, "not an endpoint id", ""] {
         assert!(!audio.is_active(id)?, "{id:?}");
@@ -128,6 +146,7 @@ fn unknown_and_malformed_ids_are_reported_as_missing() -> toggle_audio::Result<(
 #[test]
 #[ignore = "needs a Windows machine with an active playback device"]
 fn setting_the_current_default_changes_nothing() -> toggle_audio::Result<()> {
+    let _serial = serial();
     let audio = AudioSystem::new()?;
     let before = defaults(&audio)?;
 
@@ -153,6 +172,7 @@ fn setting_the_current_default_changes_nothing() -> toggle_audio::Result<()> {
 #[test]
 #[ignore = "needs a Windows machine with an active playback device"]
 fn default_id_matches_default_for() -> toggle_audio::Result<()> {
+    let _serial = serial();
     let audio = AudioSystem::new()?;
     for role in ALL_ROLES {
         assert_eq!(
@@ -198,6 +218,7 @@ fn first_active_capture_id(_audio: &AudioSystem) -> toggle_audio::Result<Option<
 #[test]
 #[ignore = "needs a Windows machine with an active playback device"]
 fn recording_endpoints_are_not_playback_devices() -> toggle_audio::Result<()> {
+    let _serial = serial();
     let audio = AudioSystem::new()?;
     let Some(capture_id) = first_active_capture_id(&audio)? else {
         eprintln!("no active recording endpoint; nothing to check");
@@ -257,6 +278,7 @@ fn test_devices(audio: &AudioSystem) -> toggle_audio::Result<Option<(DeviceRef, 
 #[test]
 #[ignore = "changes the default playback device; also needs TOGGLE_AUDIO_TEST_DEVICES"]
 fn toggle_round_trip_restores_the_default() -> toggle_audio::Result<()> {
+    let _serial = serial();
     let audio = AudioSystem::new()?;
     let Some((device1, device2)) = test_devices(&audio)? else {
         eprintln!("{DEVICES_VAR} is not set; the default device was not touched");
@@ -304,6 +326,7 @@ fn toggle_round_trip_restores_the_default() -> toggle_audio::Result<()> {
 #[test]
 #[ignore = "needs a Windows machine with an active playback device"]
 fn com_can_be_initialized_repeatedly_on_one_thread() -> toggle_audio::Result<()> {
+    let _serial = serial();
     let outer = AudioSystem::new()?;
     {
         // S_FALSE path: nested initialization is balanced by the inner drop.

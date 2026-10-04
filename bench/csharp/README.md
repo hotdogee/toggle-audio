@@ -202,22 +202,26 @@ On Windows 11 10.0.26300, zh-TW, code page 950:
 
 ## Results
 
-To be filled in by the measuring agent (hyperfine `-N --warmup 10 --runs 200`, 3 rounds,
-pooled; see `bench/RESULTS.md`).
+_Measured 2026-10-04 by `bench/run-bench.ps1` on the reference machine (7950X, Windows 11 26300.9550, Defender on). Full tables, the method and the anomalies are in [`bench/RESULTS.md`](../RESULTS.md); raw data in [`bench/results/`](../results/)._
+
+hyperfine `-N --warmup 10 --runs 200`, 3 rounds, pooled.
 
 | Scenario | Mean ± σ (ms) | Median (ms) | Min (ms) | Notes |
 | --- | --- | --- | --- | --- |
-| no args (runtime floor) | | | | Includes the runtime's own `CoInitializeEx` (before `Main`); not COM-free like the other languages |
-| `list` | | | | |
-| `get` | | | | |
-| `set` (no-op, current default) | | | | |
-| `toggle` (real switch) | | | | |
+| no args (runtime floor) | 11.83 ± 1.27 | 11.63 | 9.71 | Includes the runtime's own `CoInitializeEx` (before `Main`); not COM-free like the other languages. C: 7.52 |
+| `list` | 18.95 ± 1.15 | 18.71 | 17.39 | C: 17.57 |
+| `get` | 14.87 ± 0.80 | 14.73 | 13.62 | C: 13.94 |
+| `set` (no-op, current default) | 39.25 ± 2.66 | 38.91 | 33.52 | C: 38.25 |
+| `toggle` (real switch) | 43.59 ± 3.63 | 42.78 | 38.61 | warm-up 2 + 20 runs; C: 41.83 |
 
 | Item | Value |
 | --- | --- |
 | Binary size | 1,001,984 bytes (0.96 MB) with SDK 9.0.318 / ILCompiler 9.0.20 |
-| `--timing` median `entry` (create to entry, µs) | (includes COM initialization, see "COM apartment") |
-| `--timing` median `com_init` / `enumerator` / `work_done` (µs) | (`com_init` is near zero because COM is already initialized; compare `entry` instead) |
+| `--timing` median `entry` (create to entry, µs) | 8,498, which includes COM initialization (`ta-c`: entry 6,044, plus 2,063 for `CoInitializeEx`) |
+| `--timing` median `com_init` / `enumerator` / `work_done` (µs) | 8,501 / 10,854 / 33,993 (`ta-c`: 8,107 / 10,266 / 36,727) |
+| Cold first run (fresh copy, `list`) | 42.8 / 42.8 / 44.1 ms |
+
+Against C, NativeAOT costs about 4.3 ms more at start-up (runtime floor 11.8 against 7.5 ms) and about 1.4 ms more on `list`. On `set` and `toggle` there is no measurable difference, because the three `SetDefaultEndpoint` RPCs dominate. Passed the correctness gate.
 
 ## Known limitations
 

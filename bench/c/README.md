@@ -219,26 +219,25 @@ Sizes from MSVC 14.44.35207 on the reference machine:
 
 ## Results
 
-The measuring agent fills in this section. Numbers are wall time in ms, measured with hyperfine
-`-N` (warm-up 10, 200 runs × 3 rounds, pooled), reference machine (7950X, Windows 11 26300,
-Defender on). Scenario definitions are in `docs/research/benchmark-method.md` section 2.7.
+_Measured 2026-10-04 by `bench/run-bench.ps1` on the reference machine (7950X, Windows 11 26300.9550, Defender on). Full tables, the method and the anomalies are in [`bench/RESULTS.md`](../RESULTS.md); raw data in [`bench/results/`](../results/)._
 
-| Exe | runtime floor (no args) | `list` | `set` no-op | real `toggle` | `--timing` entry (µs) |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| `nop-con-detached.exe` (baseline) | _tbd_ | n/a | n/a | n/a | n/a |
-| `ta-c.exe` | _tbd_ | _tbd_ | _tbd_ | _tbd_ | _tbd_ |
-| `ta-c-gui.exe` | _tbd_ | _tbd_ | _tbd_ | _tbd_ | _tbd_ |
-| `ta-c-md.exe` | _tbd_ | _tbd_ | _tbd_ | _tbd_ | _tbd_ |
-| `ta-c-delayload.exe` | _tbd_ | _tbd_ | _tbd_ | _tbd_ | _tbd_ |
-| `ta-c-nocrt.exe` | _tbd_ | _tbd_ | _tbd_ | _tbd_ | _tbd_ |
+Wall time in ms, mean ± σ (median). hyperfine `-N`, warm-up 10, 200 runs × 3 rounds pooled; the toggle column is warm-up 2 + 20 runs, PG42UQ ↔ PHL BDM4065. `--timing` entry is the median of 30 `set <current> --timing` runs launched from pwsh (`Process.Start`), in µs since process creation.
 
-Informal implementer smoke numbers, **not** results: `spawnbench`, inherit mode, 200 runs, median.
-- `nop-con-detached` 3.4 ms; `ta-c` with no arguments 7.6 ms; `ta-c-delayload` with no arguments
-  3.9 ms. So most of the C "runtime floor" is the load-time import of `ole32.dll` and its
-  dependencies, not the CRT. Keep this in mind when comparing the no-arguments scenario across
-  languages: a runtime that loads ole32 lazily (Go's `syscall.NewLazyDLL`, for example) skips that
-  cost there, but pays it in every real command.
-- `ta-c list` 18.7 ms; `ta-c set <current default>` 41 to 52 ms (three `SetDefaultEndpoint` RPCs).
+| Exe | runtime floor (no args) | `list` | `get` | `set` no-op | real `toggle` | `--timing` entry (µs) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `nop-con-detached.exe` (baseline) | 3.47 ± 0.53 (3.39) | n/a | n/a | n/a | n/a | n/a |
+| `ta-c.exe` | 7.52 ± 0.80 (7.38) | 17.57 ± 1.01 (17.36) | 13.94 ± 0.76 (13.81) | 38.25 ± 2.53 (37.81) | 41.83 ± 2.83 (41.59) | 6,044 |
+| `ta-c-gui.exe` | 7.60 ± 0.64 (7.52) | 17.67 ± 1.44 (17.39) | 13.81 ± 0.83 (13.62) | 39.18 ± 3.51 (38.54) | 40.59 ± 1.90 (40.58) | 6,093 |
+| `ta-c-md.exe` | 8.04 ± 0.81 (7.88) | 17.37 ± 0.97 (17.13) | 14.00 ± 0.98 (13.80) | 38.70 ± 2.84 (38.27) | 40.68 ± 1.95 (40.90) | 6,013 |
+| `ta-c-delayload.exe` | 4.24 ± 0.60 (4.06) | 17.34 ± 1.11 (17.17) | 13.69 ± 0.76 (13.53) | 38.45 ± 2.65 (38.10) | 42.75 ± 4.44 (41.54) | 3,121 |
+| `ta-c-nocrt.exe` | 7.06 ± 0.78 (6.96) | 17.31 ± 1.09 (17.08) | 13.48 ± 0.78 (13.31) | 38.37 ± 2.73 (37.93) | 40.01 ± 1.92 (40.17) | 5,721 |
+
+Notes:
+- `nop` takes 3.45 ms and `ta-c` with no arguments 7.52 ms. Most of that 4 ms gap is the load-time import of `ole32.dll`: `ta-c-delayload` takes 4.24 ms with no arguments, but its `com_init` phase grows from 2.0 to 4.5 ms, so a real command gains nothing. The static CRT costs about 0.5 ms (`ta-c-nocrt`: 7.06 ms).
+- Three `SetDefaultEndpoint` calls take about 23–27 ms even when nothing changes: set-noop takes 38 ms and a real toggle about 41 ms.
+- Cold first run (a fresh copy with a new hash, one `list`): `ta-c` 43.3 / 41.6 / 49.9 ms, `ta-c-nocrt` 32.8 / 33.8 / 32.7 ms, `ta-c-md` 34.4 / 33.9 / 34.4 ms.
+- G HUB-style launch (no-console parent, no creation flags, spawnbench, 10 runs): `ta-c.exe get` 14.14 ms median and `ta-c-gui.exe get` 14.34 ms. Neither opened a console window, so the detached manifest makes the console build behave like the GUI build.
+- All five variants passed the correctness gate: a real toggle verified with AudioDeviceCmdlets, plus `list`, `get`, a bogus id and the usage error.
 
 ## Known limitations
 

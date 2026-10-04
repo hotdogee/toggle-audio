@@ -1,0 +1,18 @@
+# spawnbench mode=inherit runs=10 warmup=1 cmd=I:\Projects\toggle-audio\bench\baseline\bin\nop-con.exe
+run	1	149138.6	0
+run	2	166165.8	0
+run	3	149427.3	0
+run	4	153881.3	0
+run	5	154660.3	0
+run	6	150548.8	0
+run	7	155546.7	0
+run	8	146018.1	0
+run	9	154910.7	0
+run	10	151252.5	0
+stat	runs	10
+stat	failures	0
+stat	min_us	146018.1
+stat	median_us	152566.9
+stat	mean_us	153155.0
+stat	p95_us	166165.8
+stat	max_us	166165.8

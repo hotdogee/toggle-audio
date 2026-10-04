@@ -172,17 +172,22 @@ ta-zigcc.exe 88064 3 (console) detached (mt.exe) ole32.dll, api-ms-win-crt-*.dll
 
 ## Results
 
-Filled in by the measuring agent (hyperfine `-N`, warm, Defender on; see benchmark-method.md §2).
+_Measured 2026-10-04 by `bench/run-bench.ps1` on the reference machine (7950X, Windows 11 26300.9550, Defender on). Full tables, the method and the anomalies are in [`bench/RESULTS.md`](../RESULTS.md); raw data in [`bench/results/`](../results/)._
+
+Cells are mean ± σ (median), ms. hyperfine `-N`, warm-up 10, 200 runs × 3 rounds (toggle: warm-up 2 + 20 runs).
 
 | Scenario | ta-zig.exe (ms) | ta-zigcc.exe (ms) | ta-c.exe (ms, reference) |
 | --- | --- | --- | --- |
-| no args (runtime floor) | _TBD_ | _TBD_ | _TBD_ |
-| `get` | _TBD_ | _TBD_ | _TBD_ |
-| `list` | _TBD_ | _TBD_ | _TBD_ |
-| `set <current default>` (no-op) | _TBD_ | _TBD_ | _TBD_ |
-| `toggle` (real switch) | _TBD_ | _TBD_ | _TBD_ |
-| `create_to_entry` median (µs, `--timing`) | _TBD_ | _TBD_ | _TBD_ |
-| Binary size (bytes) | 16,384 | 88,064 | _TBD_ |
+| no args (runtime floor) | 7.05 ± 0.53 (6.97) | 7.58 ± 0.51 (7.51) | 7.52 ± 0.80 (7.38) |
+| `get` | 13.50 ± 0.81 (13.31) | 13.60 ± 0.69 (13.47) | 13.94 ± 0.76 (13.81) |
+| `list` | 17.78 ± 1.32 (17.52) | 18.26 ± 1.94 (17.81) | 17.57 ± 1.01 (17.36) |
+| `set <current default>` (no-op) | 38.90 ± 3.42 (38.24) | 38.32 ± 2.54 (37.93) | 38.25 ± 2.53 (37.81) |
+| `toggle` (real switch) | 40.87 ± 2.43 (40.81) | 40.92 ± 2.36 (41.05) | 41.83 ± 2.83 (41.59) |
+| `create_to_entry` median (µs, `--timing` `entry`) | 5,836 | 5,672 | 6,044 |
+| cold first run (fresh copy, `list`, ms) | 33.7 / 36.4 / 31.7 | 35.4 / 37.2 / 37.3 | 43.3 / 41.6 / 49.9 |
+| Binary size (bytes) | 16,384 | 88,064 | 116,224 |
+
+Both Zig builds are within noise of the MSVC reference in every scenario. `ta-zig` (no libc, 16 KB) has the same runtime floor as `ta-c-nocrt`, about 7.0 ms. Both passed the correctness gate, with `list` byte-identical to C.
 
 ## Known limitations
 

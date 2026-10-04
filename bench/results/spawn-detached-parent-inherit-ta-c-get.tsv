@@ -1,0 +1,18 @@
+# spawnbench mode=inherit runs=10 warmup=1 cmd=I:\Projects\toggle-audio\bench\c\bin\ta-c.exe get
+run	1	13732.7	0
+run	2	14105.0	0
+run	3	14346.6	0
+run	4	14061.3	0
+run	5	14159.7	0
+run	6	14825.9	0
+run	7	14193.3	0
+run	8	14033.5	0
+run	9	14116.9	0
+run	10	14305.1	0
+stat	runs	10
+stat	failures	0
+stat	min_us	13732.7
+stat	median_us	14138.3
+stat	mean_us	14188.0
+stat	p95_us	14825.9
+stat	max_us	14825.9

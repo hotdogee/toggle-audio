@@ -103,17 +103,19 @@ The script is non-interactive and idempotent:
 
 ## Results
 
-The measuring agent fills in this section. Times are wall time in ms, hyperfine `-N` or
-spawnbench, warm.
+_Measured 2026-10-04 by `bench/run-bench.ps1` on the reference machine (7950X, Windows 11 26300.9550, Defender on). Full tables, the method and the anomalies are in [`bench/RESULTS.md`](../RESULTS.md); raw data in [`bench/results/`](../results/)._
 
-| Exe | hyperfine `-N` mean ± σ | median | spawnbench `inherit` median | spawnbench `noconsole` median | spawnbench `newconsole` median (≤ 5 runs) |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| `nop.exe` | _tbd_ | _tbd_ | _tbd_ | _tbd_ | n/a |
-| `nop-con.exe` | _tbd_ | _tbd_ | _tbd_ | _tbd_ | _tbd_ |
-| `nop-con-detached.exe` | _tbd_ | _tbd_ | _tbd_ | _tbd_ | _tbd_ |
+Wall time in ms, warm. hyperfine: warm-up 10, 200 runs × 3 rounds pooled. spawnbench `inherit` and `noconsole`: 200 runs, warm-up 10. "G HUB-style" means spawnbench itself was started with `DETACHED_PROCESS` (no console, like a GUI launcher) and started each child with no creation flags.
 
-The implementer's informal smoke run (inherit mode, 100 runs, launched from Git Bash) gave
-medians of about 3.1 to 3.6 ms for the `nop` variants.
+| Exe | hyperfine `-N` mean ± σ | median | spawnbench `inherit` median | spawnbench `noconsole` median | spawnbench `newconsole` median (10 runs) | G HUB-style launch median (10 runs) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `nop.exe` | 3.45 ± 0.49 | 3.37 | 2.92 | 3.17 | n/a | 3.02 |
+| `nop-con.exe` | 3.53 ± 0.47 | 3.43 | 2.86 | 2.74 | 153.36 | 152.57 |
+| `nop-con-detached.exe` | 3.47 ± 0.53 | 3.39 | 2.81 | 2.56 | 2.90 | 2.81 |
+
+- **No-flash benefit, measured:** launched G HUB-style, the plain console exe `nop-con.exe` gets a new console window every time and takes about **153 ms**. `nop-con-detached.exe` takes **2.8 ms**, creates no window, and matches the GUI-subsystem `nop.exe` (3.0 ms). The manifest itself costs nothing measurable (3.47 against 3.53 ms under hyperfine).
+- Contrary to the expectation under Known limitations, on Windows 11 build 26300 the detached policy also overrides an **explicit** `CREATE_NEW_CONSOLE`: `newconsole` on `nop-con-detached.exe` took 2.9 ms and opened no console, against 153 ms for `nop-con.exe`.
+- Every console window that opened closed by itself when the child exited; none were left for the harness to close.
 
 ## Known limitations
 

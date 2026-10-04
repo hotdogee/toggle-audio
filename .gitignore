@@ -11,7 +11,6 @@ bench/**/*.ilk
 bench/**/*.res
 bench/**/.zig-cache/
 bench/**/zig-out/
-bench/results/*.json
 # .NET build outputs (scoped: a bare **/bin/ would also ignore src/bin/)
 installer/**/bin/
 installer/**/obj/

@@ -131,22 +131,30 @@ Build facts on the reference machine (rustc 1.99.0, windows 0.62.2):
 
 ## Results
 
-To be filled in by the measuring agent. Method: hyperfine `-N`, warmup 10, 200 runs × 3 rounds. Times in ms; each cell is mean ± σ (median, min).
+_Measured 2026-10-04 by `bench/run-bench.ps1` on the reference machine (7950X, Windows 11 26300.9550, Defender on). Full tables, the method and the anomalies are in [`bench/RESULTS.md`](../RESULTS.md); raw data in [`bench/results/`](../results/)._
 
-| Scenario | Command | ta-rs | C reference | Δ vs C |
+Method: hyperfine `-N`, warm-up 10, 200 runs × 3 rounds (toggle: warm-up 2 + 20 runs). Times in ms; each cell is mean ± σ (median, min).
+
+| Scenario | Command | ta-rs | C reference (`ta-c`) | Δ mean vs C |
 | --- | --- | --- | --- | --- |
-| runtime-only | `ta-rs.exe` (exit 1) | | | |
-| list | `ta-rs.exe list` | | | |
-| set-noop | `ta-rs.exe set <PG42UQ id>` | | | |
-| toggle | `ta-rs.exe toggle <PG42UQ id> <PHL BDM4065 id>` | | | |
-| cold first run | fresh copy, one launch | | | |
+| runtime-only | `ta-rs.exe` (exit 1) | 8.08 ± 0.90 (7.96, min 6.35) | 7.52 ± 0.80 (7.38, min 6.18) | +0.56 |
+| list | `ta-rs.exe list` | 17.19 ± 1.03 (16.99, min 15.67) | 17.57 ± 1.01 (17.36, min 15.97) | -0.38 |
+| get | `ta-rs.exe get` | 13.57 ± 0.72 (13.40, min 12.36) | 13.94 ± 0.76 (13.81, min 12.66) | -0.37 |
+| set-noop | `ta-rs.exe set <PG42UQ id>` | 38.87 ± 2.83 (38.54, min 33.24) | 38.25 ± 2.53 (37.81, min 33.24) | +0.61 |
+| toggle | `ta-rs.exe toggle <PG42UQ id> <PHL BDM4065 id>` | 43.79 ± 2.74 (43.52, min 38.68) | 41.83 ± 2.83 (41.59, min 37.57) | +1.96 |
+| cold first run | fresh copy (new hash), one `list` launch | 530 / 457 / 501 | 43 / 42 / 50 | see note |
 
-Phase medians in µs over 30 `--timing` runs:
+Phase medians in µs since process creation, over 30 `--timing` runs launched from pwsh `Process.Start`:
 
 | Command | entry (create→entry) | com_init | enumerator | work_done | exit |
 | --- | --- | --- | --- | --- | --- |
-| `list` | | | | | |
-| `set` (no-op) | | | | | |
+| `list` | not captured (the harness captures `set` only) | | | | |
+| `set` (no-op) | 5,692 | 7,669 | 9,766 | 34,037 | 35,148 |
+| `set` (no-op), `ta-c` for comparison | 6,044 | 8,107 | 10,266 | 36,727 | 37,784 |
+
+- ta-rs is within noise of C in every warm scenario; one implementation's median moves by up to about 2 ms from round to round. Its runtime floor is about 0.5 ms above C's.
+- **Cold-start anomaly:** each fresh copy of `ta-rs.exe` (new hash) took about 0.46–0.6 s on its first launch, in 5 of 5 tries. The second launch took 9–10 ms. The other native exes took 33–68 ms on their first launch, including the product `toggle-audio.exe` (64–69 ms), which is also Rust and uses the same `windows` crate. This looks like a deeper Defender scan of this particular image. It could not be investigated further without admin. It happens once per new binary, not on every toggle.
+- Passed the correctness gate: a real toggle verified with AudioDeviceCmdlets, `list` byte-identical to C, `get`, a bogus id (exit 3) and the usage error (exit 1).
 
 ## Known limitations
 

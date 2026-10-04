@@ -1,0 +1,1478 @@
+{
+  "machine": {
+    "date": "2026-10-04 20:30:49 +08:00",
+    "cpu": "AMD Ryzen 9 7950X 16-Core Processor",
+    "logical": 32,
+    "ram_gb": 127.1,
+    "os": "Microsoft Windows 11 專業工作站版 10.0.26300.0",
+    "ubr": 9550,
+    "power_plan": "電源配置 GUID: e9a42b02-d5df-448d-aa00-03f14749eb61  (終極效能)",
+    "hyperfine": "hyperfine 1.20.0",
+    "pwsh": "7.6.6",
+    "defender_rtp": true,
+    "smart_app_control": 0
+  },
+  "build": {},
+  "sizes": {
+    "nop": 2560,
+    "nop-con": 2560,
+    "nop-con-detached": 4096,
+    "ta-c": 116224,
+    "ta-c-gui": 116224,
+    "ta-c-md": 23040,
+    "ta-c-delayload": 119296,
+    "ta-c-nocrt": 20480,
+    "ta-rs": 250368,
+    "ta-cs": 1001984,
+    "ta-go": 1530368,
+    "ta-zig": 16384,
+    "ta-zigcc": 88064,
+    "toggle-audio": 521216,
+    "toggle-audiow": 521216,
+    "ta-ps": 48128,
+    "ta-ps-anycpu": 48128,
+    "Switch-Audio (legacy)": 27648
+  },
+  "gate": [
+    {
+      "impl": "ta-c",
+      "toggle1": true,
+      "toggle2": true,
+      "list": true,
+      "list_eq_c": true,
+      "get": true,
+      "bogus": true,
+      "noargs": true,
+      "detail": [],
+      "pass": true
+    },
+    {
+      "impl": "ta-c-gui",
+      "toggle1": true,
+      "toggle2": true,
+      "list": true,
+      "list_eq_c": true,
+      "get": true,
+      "bogus": true,
+      "noargs": true,
+      "detail": [],
+      "pass": true
+    },
+    {
+      "impl": "ta-c-md",
+      "toggle1": true,
+      "toggle2": true,
+      "list": true,
+      "list_eq_c": true,
+      "get": true,
+      "bogus": true,
+      "noargs": true,
+      "detail": [],
+      "pass": true
+    },
+    {
+      "impl": "ta-c-delayload",
+      "toggle1": true,
+      "toggle2": true,
+      "list": true,
+      "list_eq_c": true,
+      "get": true,
+      "bogus": true,
+      "noargs": true,
+      "detail": [],
+      "pass": true
+    },
+    {
+      "impl": "ta-c-nocrt",
+      "toggle1": true,
+      "toggle2": true,
+      "list": true,
+      "list_eq_c": true,
+      "get": true,
+      "bogus": true,
+      "noargs": true,
+      "detail": [],
+      "pass": true
+    },
+    {
+      "impl": "ta-rs",
+      "toggle1": true,
+      "toggle2": true,
+      "list": true,
+      "list_eq_c": true,
+      "get": true,
+      "bogus": true,
+      "noargs": true,
+      "detail": [],
+      "pass": true
+    },
+    {
+      "impl": "ta-cs",
+      "toggle1": true,
+      "toggle2": true,
+      "list": true,
+      "list_eq_c": true,
+      "get": true,
+      "bogus": true,
+      "noargs": true,
+      "detail": [],
+      "pass": true
+    },
+    {
+      "impl": "ta-go",
+      "toggle1": true,
+      "toggle2": true,
+      "list": true,
+      "list_eq_c": true,
+      "get": true,
+      "bogus": true,
+      "noargs": true,
+      "detail": [],
+      "pass": true
+    },
+    {
+      "impl": "ta-zig",
+      "toggle1": true,
+      "toggle2": true,
+      "list": true,
+      "list_eq_c": true,
+      "get": true,
+      "bogus": true,
+      "noargs": true,
+      "detail": [],
+      "pass": true
+    },
+    {
+      "impl": "ta-zigcc",
+      "toggle1": true,
+      "toggle2": true,
+      "list": true,
+      "list_eq_c": true,
+      "get": true,
+      "bogus": true,
+      "noargs": true,
+      "detail": [],
+      "pass": true
+    },
+    {
+      "impl": "toggle-audio",
+      "toggle1": true,
+      "toggle2": true,
+      "list": true,
+      "list_eq_c": true,
+      "get": true,
+      "bogus": true,
+      "noargs": true,
+      "detail": [],
+      "pass": true
+    },
+    {
+      "impl": "toggle-audiow",
+      "toggle1": true,
+      "toggle2": true,
+      "list": true,
+      "list_eq_c": true,
+      "get": true,
+      "bogus": true,
+      "noargs": true,
+      "detail": [],
+      "pass": true
+    },
+    {
+      "impl": "ta.ps1 (powershell.exe)",
+      "toggle1": true,
+      "toggle2": true,
+      "list": true,
+      "list_eq_c": true,
+      "get": true,
+      "bogus": true,
+      "noargs": true,
+      "detail": [],
+      "pass": true
+    },
+    {
+      "impl": "ta.ps1 (pwsh)",
+      "toggle1": true,
+      "toggle2": true,
+      "list": true,
+      "list_eq_c": true,
+      "get": true,
+      "bogus": true,
+      "noargs": true,
+      "detail": [],
+      "pass": true
+    },
+    {
+      "impl": "ta-ps",
+      "toggle1": true,
+      "toggle2": true,
+      "list": true,
+      "list_eq_c": true,
+      "get": true,
+      "bogus": true,
+      "noargs": true,
+      "detail": [],
+      "pass": true
+    },
+    {
+      "impl": "Switch-Audio (legacy)",
+      "toggle1": true,
+      "toggle2": true,
+      "list": null,
+      "list_eq_c": null,
+      "get": null,
+      "bogus": null,
+      "noargs": null,
+      "detail": [],
+      "pass": true
+    }
+  ],
+  "hyperfine": {
+    "noargs": {
+      "nop": {
+        "n": 600,
+        "mean": 3.451,
+        "sd": 0.489,
+        "median": 3.37,
+        "min": 2.773,
+        "max": 7.467
+      },
+      "nop-con": {
+        "n": 600,
+        "mean": 3.531,
+        "sd": 0.47,
+        "median": 3.426,
+        "min": 2.873,
+        "max": 6.998
+      },
+      "nop-con-detached": {
+        "n": 600,
+        "mean": 3.468,
+        "sd": 0.531,
+        "median": 3.394,
+        "min": 2.64,
+        "max": 6.675
+      },
+      "ta-c": {
+        "n": 600,
+        "mean": 7.519,
+        "sd": 0.8,
+        "median": 7.378,
+        "min": 6.184,
+        "max": 11.637
+      },
+      "ta-c-gui": {
+        "n": 600,
+        "mean": 7.596,
+        "sd": 0.642,
+        "median": 7.516,
+        "min": 6.247,
+        "max": 10.419
+      },
+      "ta-c-md": {
+        "n": 600,
+        "mean": 8.042,
+        "sd": 0.805,
+        "median": 7.882,
+        "min": 6.389,
+        "max": 12.053
+      },
+      "ta-c-delayload": {
+        "n": 600,
+        "mean": 4.24,
+        "sd": 0.601,
+        "median": 4.064,
+        "min": 3.363,
+        "max": 7.743
+      },
+      "ta-c-nocrt": {
+        "n": 600,
+        "mean": 7.063,
+        "sd": 0.783,
+        "median": 6.956,
+        "min": 5.637,
+        "max": 11.148
+      },
+      "ta-rs": {
+        "n": 600,
+        "mean": 8.08,
+        "sd": 0.9,
+        "median": 7.959,
+        "min": 6.351,
+        "max": 12.293
+      },
+      "ta-cs": {
+        "n": 600,
+        "mean": 11.829,
+        "sd": 1.266,
+        "median": 11.626,
+        "min": 9.711,
+        "max": 19.93
+      },
+      "ta-go": {
+        "n": 600,
+        "mean": 6.073,
+        "sd": 0.642,
+        "median": 5.928,
+        "min": 4.914,
+        "max": 10.252
+      },
+      "ta-zig": {
+        "n": 600,
+        "mean": 7.048,
+        "sd": 0.531,
+        "median": 6.972,
+        "min": 5.938,
+        "max": 9.527
+      },
+      "ta-zigcc": {
+        "n": 600,
+        "mean": 7.583,
+        "sd": 0.513,
+        "median": 7.507,
+        "min": 6.59,
+        "max": 9.999
+      },
+      "toggle-audio": {
+        "n": 600,
+        "mean": 9.778,
+        "sd": 0.783,
+        "median": 9.668,
+        "min": 8.484,
+        "max": 16.573
+      },
+      "toggle-audiow": {
+        "n": 600,
+        "mean": 9.762,
+        "sd": 0.668,
+        "median": 9.641,
+        "min": 8.684,
+        "max": 15.765
+      }
+    },
+    "list": {
+      "ta-c": {
+        "n": 600,
+        "mean": 17.572,
+        "sd": 1.012,
+        "median": 17.358,
+        "min": 15.972,
+        "max": 22.902
+      },
+      "ta-c-gui": {
+        "n": 600,
+        "mean": 17.673,
+        "sd": 1.437,
+        "median": 17.394,
+        "min": 15.997,
+        "max": 39.157
+      },
+      "ta-c-md": {
+        "n": 600,
+        "mean": 17.372,
+        "sd": 0.965,
+        "median": 17.132,
+        "min": 16.121,
+        "max": 25.867
+      },
+      "ta-c-delayload": {
+        "n": 600,
+        "mean": 17.341,
+        "sd": 1.112,
+        "median": 17.173,
+        "min": 15.804,
+        "max": 33.891
+      },
+      "ta-c-nocrt": {
+        "n": 600,
+        "mean": 17.305,
+        "sd": 1.092,
+        "median": 17.078,
+        "min": 15.393,
+        "max": 24.95
+      },
+      "ta-rs": {
+        "n": 600,
+        "mean": 17.191,
+        "sd": 1.034,
+        "median": 16.993,
+        "min": 15.674,
+        "max": 24.802
+      },
+      "ta-cs": {
+        "n": 600,
+        "mean": 18.947,
+        "sd": 1.154,
+        "median": 18.707,
+        "min": 17.388,
+        "max": 26.734
+      },
+      "ta-go": {
+        "n": 600,
+        "mean": 19.939,
+        "sd": 1.621,
+        "median": 19.515,
+        "min": 17.602,
+        "max": 30.937
+      },
+      "ta-zig": {
+        "n": 600,
+        "mean": 17.779,
+        "sd": 1.324,
+        "median": 17.518,
+        "min": 15.74,
+        "max": 26.57
+      },
+      "ta-zigcc": {
+        "n": 600,
+        "mean": 18.265,
+        "sd": 1.936,
+        "median": 17.814,
+        "min": 16.048,
+        "max": 41.156
+      },
+      "toggle-audio": {
+        "n": 600,
+        "mean": 19.743,
+        "sd": 1.236,
+        "median": 19.425,
+        "min": 17.796,
+        "max": 25.632
+      },
+      "toggle-audiow": {
+        "n": 600,
+        "mean": 19.788,
+        "sd": 1.271,
+        "median": 19.477,
+        "min": 17.722,
+        "max": 25.739
+      }
+    },
+    "set-noop": {
+      "ta-c": {
+        "n": 600,
+        "mean": 38.253,
+        "sd": 2.525,
+        "median": 37.808,
+        "min": 33.238,
+        "max": 53.0
+      },
+      "ta-c-gui": {
+        "n": 600,
+        "mean": 39.18,
+        "sd": 3.508,
+        "median": 38.541,
+        "min": 32.324,
+        "max": 72.332
+      },
+      "ta-c-md": {
+        "n": 600,
+        "mean": 38.703,
+        "sd": 2.842,
+        "median": 38.269,
+        "min": 33.019,
+        "max": 54.258
+      },
+      "ta-c-delayload": {
+        "n": 600,
+        "mean": 38.449,
+        "sd": 2.65,
+        "median": 38.097,
+        "min": 33.301,
+        "max": 60.188
+      },
+      "ta-c-nocrt": {
+        "n": 600,
+        "mean": 38.372,
+        "sd": 2.728,
+        "median": 37.931,
+        "min": 33.272,
+        "max": 58.767
+      },
+      "ta-rs": {
+        "n": 600,
+        "mean": 38.867,
+        "sd": 2.831,
+        "median": 38.54,
+        "min": 33.241,
+        "max": 57.638
+      },
+      "ta-cs": {
+        "n": 600,
+        "mean": 39.253,
+        "sd": 2.665,
+        "median": 38.905,
+        "min": 33.515,
+        "max": 55.046
+      },
+      "ta-go": {
+        "n": 600,
+        "mean": 40.338,
+        "sd": 2.702,
+        "median": 39.933,
+        "min": 34.343,
+        "max": 58.461
+      },
+      "ta-zig": {
+        "n": 600,
+        "mean": 38.897,
+        "sd": 3.419,
+        "median": 38.242,
+        "min": 32.029,
+        "max": 56.48
+      },
+      "ta-zigcc": {
+        "n": 600,
+        "mean": 38.32,
+        "sd": 2.542,
+        "median": 37.934,
+        "min": 32.18,
+        "max": 54.644
+      },
+      "toggle-audio": {
+        "n": 600,
+        "mean": 19.544,
+        "sd": 1.071,
+        "median": 19.376,
+        "min": 17.554,
+        "max": 27.539
+      },
+      "toggle-audiow": {
+        "n": 600,
+        "mean": 19.71,
+        "sd": 1.099,
+        "median": 19.535,
+        "min": 17.872,
+        "max": 29.306
+      }
+    },
+    "ps-noargs": {
+      "ps-host-empty": {
+        "n": 60,
+        "mean": 132.981,
+        "sd": 3.666,
+        "median": 132.434,
+        "min": 128.159,
+        "max": 146.636
+      },
+      "pwsh-host-empty": {
+        "n": 60,
+        "mean": 198.801,
+        "sd": 5.517,
+        "median": 197.656,
+        "min": 189.192,
+        "max": 215.227
+      },
+      "ps-ta (usage)": {
+        "n": 60,
+        "mean": 200.964,
+        "sd": 2.894,
+        "median": 200.227,
+        "min": 196.169,
+        "max": 210.435
+      },
+      "pwsh-ta (usage)": {
+        "n": 60,
+        "mean": 358.29,
+        "sd": 9.354,
+        "median": 354.431,
+        "min": 348.255,
+        "max": 383.592
+      },
+      "ta-ps (usage)": {
+        "n": 60,
+        "mean": 207.12,
+        "sd": 4.735,
+        "median": 206.071,
+        "min": 201.507,
+        "max": 223.417
+      }
+    },
+    "ps-list": {
+      "ps-ta list": {
+        "n": 60,
+        "mean": 519.827,
+        "sd": 9.005,
+        "median": 517.352,
+        "min": 507.659,
+        "max": 545.472
+      },
+      "pwsh-ta list": {
+        "n": 60,
+        "mean": 732.698,
+        "sd": 10.334,
+        "median": 731.544,
+        "min": 718.073,
+        "max": 771.467
+      },
+      "ta-ps list": {
+        "n": 60,
+        "mean": 551.068,
+        "sd": 9.785,
+        "median": 546.254,
+        "min": 532.345,
+        "max": 593.36
+      }
+    },
+    "ps-set-noop": {
+      "ps-ta set-noop": {
+        "n": 60,
+        "mean": 266.962,
+        "sd": 12.31,
+        "median": 263.792,
+        "min": 256.144,
+        "max": 322.941
+      },
+      "pwsh-ta set-noop": {
+        "n": 60,
+        "mean": 419.337,
+        "sd": 6.296,
+        "median": 418.592,
+        "min": 407.996,
+        "max": 440.101
+      },
+      "ta-ps set-noop": {
+        "n": 60,
+        "mean": 278.012,
+        "sd": 30.972,
+        "median": 273.497,
+        "min": 264.434,
+        "max": 508.618
+      },
+      "ta-ps-anycpu set-noop": {
+        "n": 60,
+        "mean": 279.798,
+        "sd": 11.139,
+        "median": 277.358,
+        "min": 266.331,
+        "max": 328.364
+      }
+    },
+    "toggle": {
+      "ps-ta": {
+        "n": 20,
+        "mean": 289.491,
+        "sd": 6.344,
+        "median": 289.097,
+        "min": 279.497,
+        "max": 307.946
+      },
+      "pwsh-ta": {
+        "n": 20,
+        "mean": 437.968,
+        "sd": 7.738,
+        "median": 435.316,
+        "min": 429.121,
+        "max": 463.969
+      },
+      "Switch-Audio (legacy)": {
+        "n": 20,
+        "mean": 887.536,
+        "sd": 10.161,
+        "median": 887.382,
+        "min": 867.088,
+        "max": 906.674
+      },
+      "switch-audio.ps1 (legacy)": {
+        "n": 20,
+        "mean": 858.499,
+        "sd": 10.257,
+        "median": 858.046,
+        "min": 838.888,
+        "max": 876.111
+      },
+      "ta-c-delayload": {
+        "n": 20,
+        "mean": 42.754,
+        "sd": 4.436,
+        "median": 41.541,
+        "min": 37.947,
+        "max": 57.396
+      },
+      "ta-c-gui": {
+        "n": 20,
+        "mean": 40.588,
+        "sd": 1.903,
+        "median": 40.575,
+        "min": 36.67,
+        "max": 44.471
+      },
+      "ta-c-md": {
+        "n": 20,
+        "mean": 40.677,
+        "sd": 1.95,
+        "median": 40.899,
+        "min": 37.171,
+        "max": 45.364
+      },
+      "ta-c-nocrt": {
+        "n": 20,
+        "mean": 40.011,
+        "sd": 1.92,
+        "median": 40.166,
+        "min": 34.903,
+        "max": 43.069
+      },
+      "ta-c": {
+        "n": 20,
+        "mean": 41.83,
+        "sd": 2.835,
+        "median": 41.59,
+        "min": 37.567,
+        "max": 47.278
+      },
+      "ta-cs": {
+        "n": 20,
+        "mean": 43.593,
+        "sd": 3.635,
+        "median": 42.781,
+        "min": 38.614,
+        "max": 53.458
+      },
+      "ta-go": {
+        "n": 20,
+        "mean": 42.3,
+        "sd": 2.643,
+        "median": 41.557,
+        "min": 37.528,
+        "max": 47.07
+      },
+      "ta-ps": {
+        "n": 20,
+        "mean": 319.114,
+        "sd": 10.293,
+        "median": 322.173,
+        "min": 297.129,
+        "max": 340.027
+      },
+      "ta-rs": {
+        "n": 20,
+        "mean": 43.793,
+        "sd": 2.739,
+        "median": 43.518,
+        "min": 38.682,
+        "max": 50.427
+      },
+      "ta-zig": {
+        "n": 20,
+        "mean": 40.865,
+        "sd": 2.433,
+        "median": 40.81,
+        "min": 36.505,
+        "max": 45.077
+      },
+      "ta-zigcc": {
+        "n": 20,
+        "mean": 40.916,
+        "sd": 2.359,
+        "median": 41.052,
+        "min": 37.022,
+        "max": 46.488
+      },
+      "toggle-audio": {
+        "n": 20,
+        "mean": 40.912,
+        "sd": 4.135,
+        "median": 40.051,
+        "min": 35.994,
+        "max": 54.657
+      },
+      "toggle-audiow": {
+        "n": 20,
+        "mean": 42.63,
+        "sd": 2.602,
+        "median": 42.171,
+        "min": 38.447,
+        "max": 48.604
+      }
+    },
+    "get": {
+      "ta-c": {
+        "n": 600,
+        "mean": 13.936,
+        "sd": 0.762,
+        "median": 13.812,
+        "min": 12.661,
+        "max": 16.801
+      },
+      "ta-c-gui": {
+        "n": 600,
+        "mean": 13.809,
+        "sd": 0.832,
+        "median": 13.619,
+        "min": 12.506,
+        "max": 18.382
+      },
+      "ta-c-md": {
+        "n": 600,
+        "mean": 14.0,
+        "sd": 0.984,
+        "median": 13.798,
+        "min": 12.538,
+        "max": 19.812
+      },
+      "ta-c-delayload": {
+        "n": 600,
+        "mean": 13.695,
+        "sd": 0.758,
+        "median": 13.531,
+        "min": 12.601,
+        "max": 17.457
+      },
+      "ta-c-nocrt": {
+        "n": 600,
+        "mean": 13.475,
+        "sd": 0.779,
+        "median": 13.306,
+        "min": 12.429,
+        "max": 17.79
+      },
+      "ta-rs": {
+        "n": 600,
+        "mean": 13.567,
+        "sd": 0.72,
+        "median": 13.398,
+        "min": 12.355,
+        "max": 16.747
+      },
+      "ta-cs": {
+        "n": 600,
+        "mean": 14.868,
+        "sd": 0.804,
+        "median": 14.729,
+        "min": 13.623,
+        "max": 20.642
+      },
+      "ta-go": {
+        "n": 600,
+        "mean": 15.361,
+        "sd": 0.796,
+        "median": 15.155,
+        "min": 14.234,
+        "max": 19.752
+      },
+      "ta-zig": {
+        "n": 600,
+        "mean": 13.504,
+        "sd": 0.808,
+        "median": 13.306,
+        "min": 12.293,
+        "max": 17.946
+      },
+      "ta-zigcc": {
+        "n": 600,
+        "mean": 13.599,
+        "sd": 0.694,
+        "median": 13.469,
+        "min": 12.38,
+        "max": 17.311
+      },
+      "toggle-audio": {
+        "n": 600,
+        "mean": 15.51,
+        "sd": 0.851,
+        "median": 15.32,
+        "min": 14.25,
+        "max": 19.142
+      },
+      "toggle-audiow": {
+        "n": 600,
+        "mean": 15.41,
+        "sd": 0.877,
+        "median": 15.154,
+        "min": 14.094,
+        "max": 20.682
+      }
+    }
+  },
+  "timing": {
+    "ta-c": {
+      "entry": 6044.0,
+      "com_init": 8107.1,
+      "enumerator": 10266.2,
+      "work_done": 36727.4,
+      "exit": 37784.0
+    },
+    "ta-c-gui": {
+      "entry": 6092.6,
+      "com_init": 8139.2,
+      "enumerator": 10467.8,
+      "work_done": 35355.2,
+      "exit": 36425.1
+    },
+    "ta-c-md": {
+      "entry": 6013.2,
+      "com_init": 8023.8,
+      "enumerator": 10283.1,
+      "work_done": 35281.4,
+      "exit": 36242.2
+    },
+    "ta-c-delayload": {
+      "entry": 3121.0,
+      "com_init": 7653.5,
+      "enumerator": 9771.2,
+      "work_done": 33450.6,
+      "exit": 34408.3
+    },
+    "ta-c-nocrt": {
+      "entry": 5720.9,
+      "com_init": 7598.8,
+      "enumerator": 9682.2,
+      "work_done": 34417.5,
+      "exit": 35497.7
+    },
+    "ta-rs": {
+      "entry": 5692.0,
+      "com_init": 7669.2,
+      "enumerator": 9765.6,
+      "work_done": 34037.4,
+      "exit": 35147.8
+    },
+    "ta-cs": {
+      "entry": 8498.2,
+      "com_init": 8501.1,
+      "enumerator": 10853.6,
+      "work_done": 33992.6,
+      "exit": 33996.6
+    },
+    "ta-go": {
+      "entry": 5071.4,
+      "com_init": 9029.4,
+      "enumerator": 11224.2,
+      "work_done": 35005.2,
+      "exit": 36046.4
+    },
+    "ta-zig": {
+      "entry": 5835.7,
+      "com_init": 7715.8,
+      "enumerator": 9919.2,
+      "work_done": 35295.6,
+      "exit": 36442.7
+    },
+    "ta-zigcc": {
+      "entry": 5671.8,
+      "com_init": 7568.2,
+      "enumerator": 9777.2,
+      "work_done": 32812.2,
+      "exit": 33821.6
+    },
+    "toggle-audio": {
+      "start": 6900.8,
+      "config_loaded": 6995.6,
+      "com_ready": 10595.9,
+      "target_chosen": 10841.2,
+      "set_done": 14842.6,
+      "end": 15283.4
+    },
+    "toggle-audiow": {
+      "start": 6892.0,
+      "config_loaded": 6988.1,
+      "com_ready": 10596.0,
+      "target_chosen": 10853.3,
+      "set_done": 14873.3,
+      "end": 15285.2
+    },
+    "ta.ps1 (powershell.exe)": {
+      "entry": 134566.5,
+      "com_init": 194916.2,
+      "enumerator": 197107.6,
+      "work_done": 243362.0,
+      "exit": 248640.9
+    },
+    "ta.ps1 (pwsh)": {
+      "entry": 194988.8,
+      "com_init": 318773.0,
+      "enumerator": 321578.6,
+      "work_done": 364051.1,
+      "exit": 369094.7
+    },
+    "ta-ps": {
+      "entry": 159069.0,
+      "com_init": 206591.8,
+      "enumerator": 208937.8,
+      "work_done": 254051.0,
+      "exit": 259827.6
+    }
+  },
+  "toggle_verify": [
+    {
+      "impl": "ta-c",
+      "hyperfine_exit": 0,
+      "playback_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "communication_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "back_on_pg": true
+    },
+    {
+      "impl": "ta-c-gui",
+      "hyperfine_exit": 0,
+      "playback_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "communication_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "back_on_pg": true
+    },
+    {
+      "impl": "ta-c-md",
+      "hyperfine_exit": 0,
+      "playback_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "communication_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "back_on_pg": true
+    },
+    {
+      "impl": "ta-c-delayload",
+      "hyperfine_exit": 0,
+      "playback_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "communication_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "back_on_pg": true
+    },
+    {
+      "impl": "ta-c-nocrt",
+      "hyperfine_exit": 0,
+      "playback_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "communication_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "back_on_pg": true
+    },
+    {
+      "impl": "ta-rs",
+      "hyperfine_exit": 0,
+      "playback_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "communication_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "back_on_pg": true
+    },
+    {
+      "impl": "ta-cs",
+      "hyperfine_exit": 0,
+      "playback_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "communication_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "back_on_pg": true
+    },
+    {
+      "impl": "ta-go",
+      "hyperfine_exit": 0,
+      "playback_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "communication_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "back_on_pg": true
+    },
+    {
+      "impl": "ta-zig",
+      "hyperfine_exit": 0,
+      "playback_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "communication_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "back_on_pg": true
+    },
+    {
+      "impl": "ta-zigcc",
+      "hyperfine_exit": 0,
+      "playback_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "communication_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "back_on_pg": true
+    },
+    {
+      "impl": "toggle-audio",
+      "hyperfine_exit": 0,
+      "playback_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "communication_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "back_on_pg": true
+    },
+    {
+      "impl": "toggle-audiow",
+      "hyperfine_exit": 0,
+      "playback_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "communication_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "back_on_pg": true
+    },
+    {
+      "impl": "ta-ps",
+      "hyperfine_exit": 0,
+      "playback_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "communication_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "back_on_pg": true
+    },
+    {
+      "impl": "ps-ta",
+      "hyperfine_exit": 0,
+      "playback_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "communication_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "back_on_pg": true
+    },
+    {
+      "impl": "pwsh-ta",
+      "hyperfine_exit": 0,
+      "playback_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "communication_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "back_on_pg": true
+    },
+    {
+      "impl": "Switch-Audio (legacy)",
+      "hyperfine_exit": 0,
+      "playback_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "communication_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "back_on_pg": true
+    },
+    {
+      "impl": "switch-audio.ps1 (legacy)",
+      "hyperfine_exit": 0,
+      "playback_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "communication_after": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+      "back_on_pg": true
+    }
+  ],
+  "spawn": [
+    {
+      "label": "inherit    nop.exe",
+      "launcher": "console",
+      "mode": "inherit",
+      "exe": "nop.exe",
+      "args": "",
+      "runs": 200.0,
+      "failures": 0.0,
+      "median_ms": 2.923,
+      "mean_ms": 3.138,
+      "min_ms": 2.548,
+      "p95_ms": 4.364,
+      "max_ms": 5.582,
+      "windows_left_open_closed": 0
+    },
+    {
+      "label": "noconsole  nop.exe",
+      "launcher": "console",
+      "mode": "noconsole",
+      "exe": "nop.exe",
+      "args": "",
+      "runs": 200.0,
+      "failures": 0.0,
+      "median_ms": 3.172,
+      "mean_ms": 3.212,
+      "min_ms": 2.536,
+      "p95_ms": 3.922,
+      "max_ms": 5.069,
+      "windows_left_open_closed": 0
+    },
+    {
+      "label": "inherit    nop-con.exe",
+      "launcher": "console",
+      "mode": "inherit",
+      "exe": "nop-con.exe",
+      "args": "",
+      "runs": 200.0,
+      "failures": 0.0,
+      "median_ms": 2.86,
+      "mean_ms": 2.954,
+      "min_ms": 2.584,
+      "p95_ms": 3.542,
+      "max_ms": 4.333,
+      "windows_left_open_closed": 0
+    },
+    {
+      "label": "noconsole  nop-con.exe",
+      "launcher": "console",
+      "mode": "noconsole",
+      "exe": "nop-con.exe",
+      "args": "",
+      "runs": 200.0,
+      "failures": 0.0,
+      "median_ms": 2.742,
+      "mean_ms": 2.822,
+      "min_ms": 2.492,
+      "p95_ms": 3.264,
+      "max_ms": 4.523,
+      "windows_left_open_closed": 0
+    },
+    {
+      "label": "inherit    nop-con-detached.exe",
+      "launcher": "console",
+      "mode": "inherit",
+      "exe": "nop-con-detached.exe",
+      "args": "",
+      "runs": 200.0,
+      "failures": 0.0,
+      "median_ms": 2.807,
+      "mean_ms": 2.919,
+      "min_ms": 2.527,
+      "p95_ms": 3.477,
+      "max_ms": 6.927,
+      "windows_left_open_closed": 0
+    },
+    {
+      "label": "noconsole  nop-con-detached.exe",
+      "launcher": "console",
+      "mode": "noconsole",
+      "exe": "nop-con-detached.exe",
+      "args": "",
+      "runs": 200.0,
+      "failures": 0.0,
+      "median_ms": 2.563,
+      "mean_ms": 2.626,
+      "min_ms": 2.321,
+      "p95_ms": 3.042,
+      "max_ms": 4.06,
+      "windows_left_open_closed": 0
+    },
+    {
+      "label": "newconsole nop-con.exe",
+      "launcher": "console",
+      "mode": "newconsole",
+      "exe": "nop-con.exe",
+      "args": "",
+      "runs": 10.0,
+      "failures": 0.0,
+      "median_ms": 153.361,
+      "mean_ms": 162.725,
+      "min_ms": 142.602,
+      "p95_ms": 207.258,
+      "max_ms": 207.258,
+      "windows_left_open_closed": 0
+    },
+    {
+      "label": "newconsole nop-con-detached.exe",
+      "launcher": "console",
+      "mode": "newconsole",
+      "exe": "nop-con-detached.exe",
+      "args": "",
+      "runs": 10.0,
+      "failures": 0.0,
+      "median_ms": 2.896,
+      "mean_ms": 2.952,
+      "min_ms": 2.667,
+      "p95_ms": 3.362,
+      "max_ms": 3.362,
+      "windows_left_open_closed": 0
+    },
+    {
+      "label": "G HUB-style (no-console parent) nop.exe ",
+      "launcher": "detached-parent",
+      "mode": "inherit",
+      "exe": "nop.exe",
+      "args": "",
+      "runs": 10.0,
+      "failures": 0.0,
+      "median_ms": 3.025,
+      "mean_ms": 3.054,
+      "min_ms": 2.801,
+      "p95_ms": 3.396,
+      "max_ms": 3.396,
+      "windows_left_open_closed": 0
+    },
+    {
+      "label": "G HUB-style (no-console parent) nop-con.exe ",
+      "launcher": "detached-parent",
+      "mode": "inherit",
+      "exe": "nop-con.exe",
+      "args": "",
+      "runs": 10.0,
+      "failures": 0.0,
+      "median_ms": 152.567,
+      "mean_ms": 153.155,
+      "min_ms": 146.018,
+      "p95_ms": 166.166,
+      "max_ms": 166.166,
+      "windows_left_open_closed": 0
+    },
+    {
+      "label": "G HUB-style (no-console parent) nop-con-detached.exe ",
+      "launcher": "detached-parent",
+      "mode": "inherit",
+      "exe": "nop-con-detached.exe",
+      "args": "",
+      "runs": 10.0,
+      "failures": 0.0,
+      "median_ms": 2.811,
+      "mean_ms": 2.966,
+      "min_ms": 2.625,
+      "p95_ms": 4.599,
+      "max_ms": 4.599,
+      "windows_left_open_closed": 0
+    },
+    {
+      "label": "G HUB-style (no-console parent) ta-c.exe get",
+      "launcher": "detached-parent",
+      "mode": "inherit",
+      "exe": "ta-c.exe",
+      "args": "get",
+      "runs": 10.0,
+      "failures": 0.0,
+      "median_ms": 14.138,
+      "mean_ms": 14.188,
+      "min_ms": 13.733,
+      "p95_ms": 14.826,
+      "max_ms": 14.826,
+      "windows_left_open_closed": 0
+    },
+    {
+      "label": "G HUB-style (no-console parent) ta-c-gui.exe get",
+      "launcher": "detached-parent",
+      "mode": "inherit",
+      "exe": "ta-c-gui.exe",
+      "args": "get",
+      "runs": 10.0,
+      "failures": 0.0,
+      "median_ms": 14.341,
+      "mean_ms": 14.458,
+      "min_ms": 13.794,
+      "p95_ms": 15.649,
+      "max_ms": 15.649,
+      "windows_left_open_closed": 0
+    },
+    {
+      "label": "G HUB-style (no-console parent) toggle-audio.exe get",
+      "launcher": "detached-parent",
+      "mode": "inherit",
+      "exe": "toggle-audio.exe",
+      "args": "get",
+      "runs": 10.0,
+      "failures": 0.0,
+      "median_ms": 15.797,
+      "mean_ms": 15.896,
+      "min_ms": 14.791,
+      "p95_ms": 17.087,
+      "max_ms": 17.087,
+      "windows_left_open_closed": 0
+    },
+    {
+      "label": "G HUB-style (no-console parent) toggle-audiow.exe get",
+      "launcher": "detached-parent",
+      "mode": "inherit",
+      "exe": "toggle-audiow.exe",
+      "args": "get",
+      "runs": 10.0,
+      "failures": 0.0,
+      "median_ms": 16.3,
+      "mean_ms": 16.47,
+      "min_ms": 15.39,
+      "p95_ms": 17.799,
+      "max_ms": 17.799,
+      "windows_left_open_closed": 0
+    }
+  ],
+  "cold": [
+    {
+      "impl": "ta-c",
+      "runs_ms": [
+        43.27,
+        41.57,
+        49.93
+      ],
+      "median_ms": 43.27
+    },
+    {
+      "impl": "ta-c-gui",
+      "runs_ms": [
+        42.59,
+        41.39,
+        40.54
+      ],
+      "median_ms": 41.39
+    },
+    {
+      "impl": "ta-c-md",
+      "runs_ms": [
+        34.39,
+        33.86,
+        34.38
+      ],
+      "median_ms": 34.38
+    },
+    {
+      "impl": "ta-c-delayload",
+      "runs_ms": [
+        41.37,
+        41.0,
+        42.06
+      ],
+      "median_ms": 41.38
+    },
+    {
+      "impl": "ta-c-nocrt",
+      "runs_ms": [
+        32.82,
+        33.78,
+        32.69
+      ],
+      "median_ms": 32.83
+    },
+    {
+      "impl": "ta-rs",
+      "runs_ms": [
+        530.13,
+        456.93,
+        500.52
+      ],
+      "median_ms": 500.52
+    },
+    {
+      "impl": "ta-cs",
+      "runs_ms": [
+        42.82,
+        42.79,
+        44.08
+      ],
+      "median_ms": 42.82
+    },
+    {
+      "impl": "ta-go",
+      "runs_ms": [
+        62.72,
+        65.78,
+        62.54
+      ],
+      "median_ms": 62.72
+    },
+    {
+      "impl": "ta-zig",
+      "runs_ms": [
+        33.7,
+        36.43,
+        31.71
+      ],
+      "median_ms": 33.7
+    },
+    {
+      "impl": "ta-zigcc",
+      "runs_ms": [
+        35.42,
+        37.16,
+        37.26
+      ],
+      "median_ms": 37.16
+    },
+    {
+      "impl": "toggle-audio",
+      "runs_ms": [
+        65.34,
+        68.71,
+        63.66
+      ],
+      "median_ms": 65.34
+    },
+    {
+      "impl": "toggle-audiow",
+      "runs_ms": [
+        64.71,
+        66.12,
+        65.98
+      ],
+      "median_ms": 65.98
+    },
+    {
+      "impl": "ta-ps",
+      "runs_ms": [
+        651.65,
+        659.92,
+        666.98
+      ],
+      "median_ms": 659.92
+    },
+    {
+      "impl": "ta-ps-anycpu",
+      "runs_ms": [
+        680.01,
+        654.34,
+        674.71
+      ],
+      "median_ms": 674.71
+    }
+  ],
+  "final_oracle": {
+    "Playback": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+    "Communication": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+    "Name": "PG42UQ (NVIDIA High Definition Audio)"
+  }
+}

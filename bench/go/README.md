@@ -129,21 +129,26 @@ They do not need audio hardware.
 
 ## Results
 
-To be filled in by the measuring agent (hyperfine `-N --warmup 10 --runs 200`, 3 rounds pooled; see `bench/RESULTS.md`).
+_Measured 2026-10-04 by `bench/run-bench.ps1` on the reference machine (7950X, Windows 11 26300.9550, Defender on). Full tables, the method and the anomalies are in [`bench/RESULTS.md`](../RESULTS.md); raw data in [`bench/results/`](../results/)._
+
+hyperfine `-N --warmup 10 --runs 200`, 3 rounds pooled (toggle: warm-up 2 + 20 runs).
 
 | Scenario | Command | Mean ± σ (ms) | Median (ms) | Min (ms) | Notes |
 | --- | --- | --- | --- | --- | --- |
-| Runtime floor | `ta-go.exe` (exit 1) | _tbd_ | _tbd_ | _tbd_ | |
-| List | `ta-go.exe list` | _tbd_ | _tbd_ | _tbd_ | |
-| Get | `ta-go.exe get` | _tbd_ | _tbd_ | _tbd_ | |
-| Set (no-op) | `ta-go.exe set <current id>` | _tbd_ | _tbd_ | _tbd_ | |
-| Toggle (real) | `ta-go.exe toggle <A> <B>` | _tbd_ | _tbd_ | _tbd_ | |
+| Runtime floor | `ta-go.exe` (exit 1) | 6.07 ± 0.64 | 5.93 | 4.91 | C: 7.52 |
+| List | `ta-go.exe list` | 19.94 ± 1.62 | 19.52 | 17.60 | C: 17.57 |
+| Get | `ta-go.exe get` | 15.36 ± 0.80 | 15.15 | 14.23 | C: 13.94 |
+| Set (no-op) | `ta-go.exe set <current id>` | 40.34 ± 2.70 | 39.93 | 34.34 | C: 38.25 |
+| Toggle (real) | `ta-go.exe toggle <A> <B>` | 42.30 ± 2.64 | 41.56 | 37.53 | C: 41.83 |
 
 | Phase (median µs since creation, `--timing`) | entry | com_init | enumerator | work_done | exit |
 | --- | --- | --- | --- | --- | --- |
-| `set <current id>` | _tbd_ | _tbd_ | _tbd_ | _tbd_ | _tbd_ |
+| `set <current id>` | 5,071 | 9,029 | 11,224 | 35,005 | 36,046 |
+| `ta-c` for comparison | 6,044 | 8,107 | 10,266 | 36,727 | 37,784 |
 
-Binary: 1,530,368 bytes (go1.27.0, GOAMD64=v3, manifest embedded).
+Binary: 1,530,368 bytes (go1.27.0, GOAMD64=v3, manifest embedded). Cold first run (fresh copy, `list`): 62.7 / 65.8 / 62.5 ms.
+
+After the C delay-load build, Go has the lowest runtime floor of the bench builds, because it loads `ole32.dll` lazily (`NewLazySystemDLL`). That cost comes back in `com_init` (about 4.0 ms against 2.0 ms for C), so `list` and `get` end up about 1.4–2.4 ms slower than C. `set` and `toggle` are within noise. Passed the correctness gate.
 
 ## Known limitations
 

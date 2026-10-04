@@ -152,31 +152,39 @@ Notes for measuring:
 
 ## Results
 
-Placeholder for the measuring agent (hyperfine `-N`, warm; ms; see `bench/RESULTS.md` for the full tables).
+_Measured 2026-10-04 by `bench/run-bench.ps1` on the reference machine (7950X, Windows 11 26300.9550, Defender on). Full tables, the method and the anomalies are in [`bench/RESULTS.md`](../RESULTS.md); raw data in [`bench/results/`](../results/)._
+
+hyperfine `-N`, warm-up 3, 20 runs × 3 rounds pooled (toggle rows: warm-up 2 + 20 runs); ms. For comparison, the native C reference takes 41.83 ms to toggle and 17.57 ms for `list`.
 
 | Row | Command | Mean ± σ | Median | Min | Notes |
 | --- | --- | --- | --- | --- | --- |
-| ps-host-empty | `powershell.exe -NoLogo -NoProfile -NonInteractive -Command exit` | | | | |
-| pwsh-host-empty | `pwsh.exe -NoLogo -NoProfile -NonInteractive -Command exit` | | | | |
-| ps-ta-usage | `powershell.exe ... -File ta.ps1` (exit 1) | | | | |
-| ps-ta-list | `powershell.exe ... -File ta.ps1 list` | | | | |
-| ps-ta-set-noop | `powershell.exe ... -File ta.ps1 set <PG42UQ>` | | | | |
-| pwsh-ta-list | `pwsh.exe ... -File ta.ps1 list` | | | | |
-| pwsh-ta-set-noop | `pwsh.exe ... -File ta.ps1 set <PG42UQ>` | | | | |
-| ps2exe-usage | `bin\ta-ps.exe` (exit 1) | | | | |
-| ps2exe-list | `bin\ta-ps.exe list` | | | | |
-| ps2exe-set-noop | `bin\ta-ps.exe set <PG42UQ>` | | | | |
-| ps2exe-anycpu-set-noop | `bin\ta-ps-anycpu.exe set <PG42UQ>` | | | | |
-| ps2exe-toggle | `bin\ta-ps.exe toggle <PG42UQ> <PHL BDM4065>` | | | | scenario (c) rules |
-| original | `C:\bin\Switch-Audio.exe` | | | | toggles S/PDIF ↔ PG42UQ; scenario (c) rules |
+| ps-host-empty | `powershell.exe -NoLogo -NoProfile -NonInteractive -Command exit` | 132.98 ± 3.67 | 132.43 | 128.16 | n = 60 (20 × 3 rounds) |
+| pwsh-host-empty | `pwsh.exe -NoLogo -NoProfile -NonInteractive -Command exit` | 198.80 ± 5.52 | 197.66 | 189.19 | n = 60 (20 × 3 rounds) |
+| ps-ta-usage | `powershell.exe ... -File ta.ps1` (exit 1) | 200.96 ± 2.89 | 200.23 | 196.17 | n = 60 (20 × 3 rounds) |
+| ps-ta-list | `powershell.exe ... -File ta.ps1 list` | 519.83 ± 9.01 | 517.35 | 507.66 | n = 60 (20 × 3 rounds) |
+| ps-ta-set-noop | `powershell.exe ... -File ta.ps1 set <PG42UQ>` | 266.96 ± 12.31 | 263.79 | 256.14 | n = 60 (20 × 3 rounds) |
+| ps-ta-toggle | `powershell.exe ... -File ta.ps1 toggle <PG42UQ> <PHL BDM4065>` | 289.49 ± 6.34 | 289.10 | 279.50 | scenario (c) rules; n = 20 |
+| pwsh-ta-usage | `pwsh.exe ... -File ta.ps1` (exit 1) | 358.29 ± 9.35 | 354.43 | 348.25 | n = 60 (20 × 3 rounds) |
+| pwsh-ta-list | `pwsh.exe ... -File ta.ps1 list` | 732.70 ± 10.33 | 731.54 | 718.07 | n = 60 (20 × 3 rounds) |
+| pwsh-ta-set-noop | `pwsh.exe ... -File ta.ps1 set <PG42UQ>` | 419.34 ± 6.30 | 418.59 | 408.00 | n = 60 (20 × 3 rounds) |
+| pwsh-ta-toggle | `pwsh.exe ... -File ta.ps1 toggle <PG42UQ> <PHL BDM4065>` | 437.97 ± 7.74 | 435.32 | 429.12 | scenario (c) rules; n = 20 |
+| ps2exe-usage | `bin\ta-ps.exe` (exit 1) | 207.12 ± 4.74 | 206.07 | 201.51 | n = 60 (20 × 3 rounds) |
+| ps2exe-list | `bin\ta-ps.exe list` | 551.07 ± 9.79 | 546.25 | 532.35 | n = 60 (20 × 3 rounds) |
+| ps2exe-set-noop | `bin\ta-ps.exe set <PG42UQ>` | 278.01 ± 30.97 | 273.50 | 264.43 | n = 60 (20 × 3 rounds) |
+| ps2exe-anycpu-set-noop | `bin\ta-ps-anycpu.exe set <PG42UQ>` | 279.80 ± 11.14 | 277.36 | 266.33 | n = 60 (20 × 3 rounds) |
+| ps2exe-toggle | `bin\ta-ps.exe toggle <PG42UQ> <PHL BDM4065>` | 319.11 ± 10.29 | 322.17 | 297.13 | scenario (c) rules; n = 20 |
+| original | `C:\bin\Switch-Audio.exe` | 887.54 ± 10.16 | 887.38 | 867.09 | toggles S/PDIF ↔ PG42UQ; scenario (c) rules; n = 20 |
+| original-script | `powershell.exe ... -File switch-audio.ps1` | 858.50 ± 10.26 | 858.05 | 838.89 | the same script without ps2exe; n = 20 |
 
-Phase medians (`--timing`, µs since process creation):
+Phase medians (`--timing`, µs since process creation, 30 runs of `set <PG42UQ> --timing`):
 
 | Host | entry | com_init | enumerator | work_done | exit |
 | --- | --- | --- | --- | --- | --- |
-| powershell.exe | | | | | |
-| pwsh | | | | | |
-| bin\ta-ps.exe | | | | | |
+| powershell.exe | 134,566 | 194,916 | 197,108 | 243,362 | 248,641 |
+| pwsh | 194,989 | 318,773 | 321,579 | 364,051 | 369,095 |
+| bin\ta-ps.exe | 159,069 | 206,592 | 208,938 | 254,051 | 259,828 |
+
+Cold first run of a fresh copy (`list`): `ta-ps.exe` 652 / 660 / 667 ms, `ta-ps-anycpu.exe` 680 / 654 / 675 ms. All three `ta.ps1` hosts passed the correctness gate, with `list` byte-identical to C. The original `Switch-Audio.exe` passed too (an S/PDIF → PG42UQ pair).
 
 ## Known limitations
 

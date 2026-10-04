@@ -1,0 +1,18 @@
+# spawnbench mode=inherit runs=10 warmup=1 cmd=I:\Projects\toggle-audio\target\release-build\release\toggle-audio.exe get
+run	1	15850.6	0
+run	2	15744.1	0
+run	3	14983.0	0
+run	4	15359.7	0
+run	5	16977.2	0
+run	6	14791.0	0
+run	7	15416.4	0
+run	8	16492.3	0
+run	9	17087.1	0
+run	10	16254.2	0
+stat	runs	10
+stat	failures	0
+stat	min_us	14791.0
+stat	median_us	15797.3
+stat	mean_us	15895.5
+stat	p95_us	17087.1
+stat	max_us	17087.1
