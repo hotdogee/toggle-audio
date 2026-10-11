@@ -399,7 +399,7 @@ updates:
   - InstallerUrl is the immutable GitHub Release asset URL, and InstallerSha256 must match it.
 - **Correction to the brief: "stable ProductCode/UpgradeCode" is half wrong.** The MSI **UpgradeCode must stay constant forever**. The **ProductCode should change every version**: in WiX, leave it auto-generated together with `<MajorUpgrade>` so each install cleanly replaces the previous one. The manifest lists the per-version `ProductCode` (and the `UpgradeCode` under `AppsAndFeaturesEntries`) so winget can correlate installed versions.
 - Silent install: for msi/wix installer types, winget supplies the msiexec quiet and passive switches itself, so no `InstallerSwitches` are needed. The MSI must complete without required UI input and without a forced reboot.
-- Keep the ARP DisplayVersion equal to the package version (the MSI ProductVersion is `major.minor.build`, so 0.1.0 works).
+- Keep the ARP DisplayVersion equal to the package version (the MSI ProductVersion is `major.minor.build`, so 0.1.0 works). Because the two match, leave `DisplayVersion` out of the manifest: winget moderators ask for it to be removed when it equals `PackageVersion`.
 - Tooling: `wingetcreate new <msi-url>` (Microsoft) or `komac` generates the manifest and the PR. Do the first submission manually. Later releases can be automated with the `vedantmgoyal9/winget-releaser` action and a PAT that can push to the user's winget-pkgs fork.
 - Validation installs the package in a VM and scans it with Defender. Unsigned installers are accepted.
 
