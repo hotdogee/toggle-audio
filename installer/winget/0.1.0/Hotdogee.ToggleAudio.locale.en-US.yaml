@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.12.0.schema.json
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.28.0.schema.json
 # Default locale manifest for microsoft/winget-pkgs. Publisher and PackageName must match the
 # MSI's Manufacturer and ProductName exactly so that "winget upgrade" correlates the package.
 
@@ -47,4 +47,4 @@ Documentations:
 - DocumentLabel: README
   DocumentUrl: https://github.com/hotdogee/toggle-audio#readme
 ManifestType: defaultLocale
-ManifestVersion: 1.12.0
+ManifestVersion: 1.28.0
