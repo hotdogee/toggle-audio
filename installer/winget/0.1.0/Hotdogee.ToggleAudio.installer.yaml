@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.28.0.schema.json
 # Installer manifest for microsoft/winget-pkgs. The ProductCode and InstallerSha256 belong to
 # the exact MSI uploaded to the v0.1.0 GitHub Release; any rebuild changes both.
 
@@ -27,4 +27,4 @@ Installers:
     UpgradeCode: '{C82A4013-F2FF-448E-A4AE-63CD73760A63}'
     InstallerType: wix
 ManifestType: installer
-ManifestVersion: 1.12.0
+ManifestVersion: 1.28.0
