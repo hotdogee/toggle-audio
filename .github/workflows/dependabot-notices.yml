@@ -1,0 +1,79 @@
+# Keeps THIRD-PARTY-NOTICES.txt in step with Cargo.lock on Dependabot pull requests.
+#
+# Dependabot cannot run scripts/third-party-notices.ps1, so a bump of a crate linked
+# into the executables fails that check in ci.yml, which also skips clippy, the tests
+# and the MSI. This workflow regenerates the file, commits it to the pull request
+# branch and starts CI on the new commit. Nothing here merges anything.
+#
+# - Runs triggered by Dependabot start with a read-only token; the permissions key
+#   below raises it, and no secrets are needed.
+# - A push made with GITHUB_TOKEN does not start CI on its own (its pull_request run
+#   waits for approval), but a workflow_dispatch event always does, and the checks
+#   land on the same commit.
+# - "[dependabot skip]" in the commit message lets Dependabot keep rebasing the branch.
+#   A rebase drops the commit and this workflow adds it again.
+#
+# Run it by hand with a branch name for a branch it missed.
+#
+# Pinning follows release.yml: GitHub-owned actions use major tags, third-party actions
+# that run next to the write token use commit SHAs.
+
+name: Dependabot notices
+
+on:
+  pull_request:
+    paths:
+      - Cargo.lock
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to regenerate the file on
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  regenerate:
+    name: Regenerate THIRD-PARTY-NOTICES.txt
+    # This job can write to the repository, so a pull request only reaches it when
+    # Dependabot opened it from a branch of this repository.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: windows-latest
+    permissions:
+      actions: write
+      contents: write
+    env:
+      BRANCH: ${{ inputs.branch || github.head_ref }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.BRANCH }}
+
+      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
+
+      - name: Regenerate the file
+        run: ./scripts/third-party-notices.ps1
+
+      - name: Commit it and start CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if (-not (git status --porcelain -- THIRD-PARTY-NOTICES.txt)) {
+              Write-Host 'THIRD-PARTY-NOTICES.txt is already up to date.'
+              exit 0
+          }
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add THIRD-PARTY-NOTICES.txt
+          git commit -m 'chore: regenerate THIRD-PARTY-NOTICES.txt [dependabot skip]'
+          git push origin "HEAD:$env:BRANCH"
+          gh workflow run ci.yml --ref $env:BRANCH
