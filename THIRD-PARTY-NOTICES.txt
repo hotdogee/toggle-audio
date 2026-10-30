@@ -15,7 +15,7 @@ Crates:
   memchr                 2.8.3     Unlicense OR MIT           https://github.com/BurntSushi/memchr
   serde                  1.0.229   MIT OR Apache-2.0          https://github.com/serde-rs/serde
   serde_core             1.0.229   MIT OR Apache-2.0          https://github.com/serde-rs/serde
-  serde_json             1.0.154   MIT OR Apache-2.0          https://github.com/serde-rs/json
+  serde_json             1.0.152   MIT OR Apache-2.0          https://github.com/serde-rs/json
   windows                0.62.2    MIT OR Apache-2.0          https://github.com/microsoft/windows-rs
   windows-collections    0.3.2     MIT OR Apache-2.0          https://github.com/microsoft/windows-rs
   windows-core           0.62.2    MIT OR Apache-2.0          https://github.com/microsoft/windows-rs
@@ -28,7 +28,7 @@ Crates:
   zmij                   1.0.23    MIT                        https://github.com/dtolnay/zmij
 
 ------------------------------------------------------------------------------
-itoa 1.0.18, serde 1.0.229, serde_core 1.0.229, serde_json 1.0.154, zmij 1.0.23
+itoa 1.0.18, serde 1.0.229, serde_core 1.0.229, serde_json 1.0.152, zmij 1.0.23
 Authors: David Tolnay, Erick Tryzelaar
 ------------------------------------------------------------------------------
 
