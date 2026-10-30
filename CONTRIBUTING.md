@@ -89,7 +89,7 @@ Expectations:
 - **Lints:** clippy (including the `pedantic` group configured in `Cargo.toml`) must be clean with `-D warnings`. If you need to silence a lint, use `#[expect(..., reason = "...")]` (it warns once the lint no longer fires) and keep it as narrow as possible.
 - **Unsafe code:** `unsafe` is allowed only where the Win32 and COM calls live: `src/audio.rs`, `src/console.rs`, `src/gui/`, the known-folder fallback in `src/config.rs`, `src/timing.rs` and the enumeration helper in `tests/real_device.rs`. Every `unsafe` block needs a `// SAFETY:` comment stating the invariant it relies on.
 - **Tests:** new logic comes with unit tests. Keep pure logic (toggle decision, config parsing, CLI parsing, encoding helpers) separate from COM so it can be tested on CI runners, which have no audio devices.
-- **Dependencies:** the startup-time budget and the zero-runtime-dependency goal matter. Discuss any new crate in an issue before adding it, and regenerate `THIRD-PARTY-NOTICES.txt` (`pwsh scripts/third-party-notices.ps1`) whenever `Cargo.lock` changes.
+- **Dependencies:** the startup-time budget and the zero-runtime-dependency goal matter. Discuss any new crate in an issue before adding it, and regenerate `THIRD-PARTY-NOTICES.txt` (`pwsh scripts/third-party-notices.ps1`) whenever `Cargo.lock` changes. The `dependabot-notices.yml` workflow does this on Dependabot pull requests.
 
 ### Real-device tests
 
