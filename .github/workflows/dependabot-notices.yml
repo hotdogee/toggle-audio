@@ -7,9 +7,9 @@
 #
 # - Runs triggered by Dependabot start with a read-only token; the permissions key
 #   below raises it, and no secrets are needed.
-# - A push made with GITHUB_TOKEN does not start CI on its own (its pull_request run
-#   waits for approval), but a workflow_dispatch event always does, and the checks
-#   land on the same commit.
+# - A push made with GITHUB_TOKEN does not start CI on its own: its pull_request runs
+#   wait for approval, so this workflow approves them. CI then runs as usual and its
+#   checks show on the pull request, which those of a workflow_dispatch run do not.
 # - "[dependabot skip]" in the commit message lets Dependabot keep rebasing the branch.
 #   A rebase drops the commit and this workflow adds it again.
 #
@@ -67,6 +67,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true
           if (-not (git status --porcelain -- THIRD-PARTY-NOTICES.txt)) {
               Write-Host 'THIRD-PARTY-NOTICES.txt is already up to date.'
               exit 0
@@ -76,4 +77,19 @@ jobs:
           git add THIRD-PARTY-NOTICES.txt
           git commit -m 'chore: regenerate THIRD-PARTY-NOTICES.txt [dependabot skip]'
           git push origin "HEAD:$env:BRANCH"
-          gh workflow run ci.yml --ref $env:BRANCH
+
+          # The runs appear a few seconds after the push. CI gets one and so does this
+          # workflow, whose run finds the file up to date.
+          $head = git rev-parse HEAD
+          $runs = "repos/$env:GITHUB_REPOSITORY/actions/runs"
+          $approved = 0
+          foreach ($attempt in 1..12) {
+              Start-Sleep -Seconds 5
+              $held = gh api "${runs}?head_sha=$head" --jq '.workflow_runs[] | select(.conclusion == "action_required") | .id'
+              foreach ($id in $held) {
+                  gh api -X POST "$runs/$id/approve" --silent
+                  $approved++
+              }
+          }
+          if (-not $approved) { throw 'No run was waiting for approval, so CI did not start.' }
+          Write-Host "Approved $approved waiting runs."
