@@ -1,4 +1,4 @@
-Third-party notices for Toggle Audio 0.1.0
+Third-party notices for Toggle Audio 0.1.1
 
 toggle-audio.exe and toggle-audiow.exe are licensed under the MIT License (see LICENSE).
 They are statically linked with the Rust crates listed below. Each crate is available under

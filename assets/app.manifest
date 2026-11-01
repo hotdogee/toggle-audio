@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
   <!-- version is the Cargo.toml version plus ".0"; a unit test (gui::tests) fails when they differ. -->
-  <assemblyIdentity type="win32" name="Hotdogee.ToggleAudio" version="0.1.0.0" processorArchitecture="*"/>
+  <assemblyIdentity type="win32" name="Hotdogee.ToggleAudio" version="0.1.1.0" processorArchitecture="*"/>
   <!-- Common Controls v6: visual styles for the settings dialog (themed buttons, combo boxes, checkbox). -->
   <dependency>
     <dependentAssembly>

@@ -332,10 +332,13 @@ impl State {
     ) -> Self {
         let unconfigured = existing.is_none();
         let (configured, switch_communications) = match existing {
-            Some(config) => (
-                vec![config.device1, config.device2],
-                config.switch_communications,
-            ),
+            Some(config) => {
+                // A device whose saved id stopped working opens selected where it is now. Nothing
+                // is written until Save.
+                let (device1, device2) = toggle::relocate(&audio, &config.device1, &config.device2)
+                    .unwrap_or((config.device1, config.device2));
+                (vec![device1, device2], config.switch_communications)
+            }
             None => (Vec::new(), true),
         };
         let choices = build_choices(active, &configured, |id| audio.name_of(id).ok().flatten());
@@ -386,6 +389,7 @@ fn build_choices(
             device: DeviceRef {
                 id: endpoint.id,
                 name: endpoint.name,
+                stable_id: None,
             },
             connected: true,
         })
@@ -401,6 +405,7 @@ fn build_choices(
             device: DeviceRef {
                 id: device.id.clone(),
                 name,
+                stable_id: device.stable_id.clone(),
             },
             connected: false,
         });
@@ -621,9 +626,18 @@ fn on_save(dialog: HWND, state: &State) {
             return;
         }
     };
+    // Best effort: a device Windows cannot find keeps what was saved, and the next toggle records
+    // a stable id that is still missing.
+    let with_stable_id = |device: &DeviceRef| {
+        let mut device = device.clone();
+        if let Ok(Some(stable_id)) = state.audio.stable_id_of(&device.id) {
+            device.stable_id = Some(stable_id);
+        }
+        device
+    };
     let config = Config::new(
-        device1.clone(),
-        device2.clone(),
+        with_stable_id(device1),
+        with_stable_id(device2),
         is_checked(dialog, IDC_COMMS),
     );
     if let Err(problem) = config.validate() {
@@ -910,6 +924,7 @@ mod tests {
         DeviceRef {
             id: id.to_owned(),
             name: name.to_owned(),
+            stable_id: None,
         }
     }
 
@@ -1104,6 +1119,7 @@ mod tests {
         let now = Outcome {
             device: device("b", "喇叭 (FiiO BTA30 PRO)"),
             warning: None,
+            moved: [None, None],
         };
         assert_eq!(
             test_status(&Ok(now)),
@@ -1115,6 +1131,7 @@ mod tests {
             warning: Some(Warning::PreferredUnavailable {
                 preferred: device("a", "Headset"),
             }),
+            moved: [None, None],
         };
         assert_eq!(
             test_status(&Ok(fallback)),

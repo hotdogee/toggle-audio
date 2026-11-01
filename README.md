@@ -57,11 +57,11 @@ Toggle Audio does one thing: each run switches the Windows default playback devi
 **Verify the download.** Each release publishes `SHA256SUMS.txt` next to the MSI and the zip. The two values must match:
 
 ```powershell
-(Get-FileHash .\toggle-audio-0.1.0-x64.msi -Algorithm SHA256).Hash.ToLower()
-Select-String toggle-audio-0.1.0-x64.msi .\SHA256SUMS.txt
+(Get-FileHash .\toggle-audio-0.1.1-x64.msi -Algorithm SHA256).Hash.ToLower()
+Select-String toggle-audio-0.1.1-x64.msi .\SHA256SUMS.txt
 ```
 
-For silent installs (`msiexec /i toggle-audio-0.1.0-x64.msi /qn` from an elevated terminal), installing without the PATH entry, upgrades and uninstalling, see [docs/packaging.md](docs/packaging.md). Your settings in `%APPDATA%\toggle-audio\` are kept on upgrade and uninstall.
+For silent installs (`msiexec /i toggle-audio-0.1.1-x64.msi /qn` from an elevated terminal), installing without the PATH entry, upgrades and uninstalling, see [docs/packaging.md](docs/packaging.md). Your settings in `%APPDATA%\toggle-audio\` are kept on upgrade and uninstall.
 
 ### Portable zip
 
@@ -144,7 +144,7 @@ The two are equally fast (see the [benchmarks](docs/benchmarks.md#g-hub-launch-c
 `toggle-audio --help` prints:
 
 ```text
-toggle-audio 0.1.0
+toggle-audio 0.1.1
 Flip the Windows default playback device between two configured devices.
 
 Usage:
@@ -232,12 +232,15 @@ Settings live in `%APPDATA%\toggle-audio\config.json`, one file per Windows user
 | --- | --- |
 | `version` | Format version, currently `1`. |
 | `device1.id`, `device2.id` | Endpoint ids, as printed by `toggle-audio list`. These are what the program uses. |
-| `device1.name`, `device2.name` | The friendly name when the device was saved. It is for information only, used in error messages and in the dialog when the device is not connected. |
+| `device1.name`, `device2.name` | The friendly name when the device was saved. It is used in error messages, in the dialog when the device is not connected, and as the last resort for finding the device. |
+| `device1.stable_id`, `device2.stable_id` | Written by the program. Finds the device when its id stops working. Empty when Windows has none for the device. Leave it out when you edit the file by hand, and the next toggle fills it in. |
 | `switch_communications` | `true` (the default when the field is missing) also switches the default communications device. `--comm` and `--no-comm` override it for one run. |
 
 Unknown fields are ignored, and spaces around ids are trimmed.
 
-**Ids, not names.** Windows gives every playback endpoint a stable id. Names can change: you can rename a device in Sound settings, and the "Speakers" part is translated (on a Chinese system it reads `喇叭`). The id stays the same as long as the device uses the same driver and port, so the setting survives renames and language changes. Reinstalling a driver, or plugging a USB device into another port, can create a new endpoint; then choose the device again in Settings.
+**Ids, then names.** Devices are saved by their Windows endpoint id, because names can change: you can rename a device in Sound settings, and the "Speakers" part is translated (on a Chinese system it reads `喇叭`). The id is not permanent either: a Windows or audio driver update can give the same device a new one. So the stable id that Windows 11 24H2 and later provide is saved too, and when a saved id stops working, Toggle Audio finds the device by its stable id, or by its exact name if exactly one connected device has that name, and updates the configuration itself. A normal press only uses the saved id, so this costs no time.
+
+If none of that finds the device, for example after you plug a USB device into another port, choose it again in Settings. Toggle Audio does not guess: an unplugged device is never replaced by another one with the same name.
 
 **What a toggle does:**
 
@@ -311,7 +314,7 @@ Full results, method and caveats are in [docs/benchmarks.md](docs/benchmarks.md)
 | Symptom | What to do |
 | --- | --- |
 | A device shows as **"(not connected)"** in Settings | Windows reports it as unplugged, off or disabled. Turn it on, or check Sound settings > All sound devices. If it is connected but still listed that way, Windows has created a new endpoint for it (after a driver reinstall or a different USB port): choose it again and Save. |
-| A hotkey press shows an **error message box** | The message names the problem. "nothing to switch to" means that neither configured device is available. A missing or broken configuration opens Settings instead: choose the devices, Save, and press the key again (that press does not toggle). |
+| A hotkey press shows an **error message box** | The message names the problem. "nothing to switch to" means that neither configured device is available. "Windows no longer has the saved device" means it could not be found by id, stable id or name: open Settings, choose it again and Save. A missing or broken configuration opens Settings instead: choose the devices, Save, and press the key again (that press does not toggle). |
 | **SmartScreen** blocks the MSI or the exe | Releases so far are unsigned ([Code signing policy](#code-signing-policy)). Click **More info > Run anyway**, after you have checked the hash against `SHA256SUMS.txt` ([Install](#install)). A signed release can still get this warning for a while after it is published, until SmartScreen has seen enough clean installs. |
 | **A console window flashes** on each G HUB press | You are on Windows 10 or Windows 11 before 24H2. Bind `toggle-audiow.exe` instead of `toggle-audio.exe`. |
 | Device names show as `?` or garbled text in `toggle-audio list \| ...` | When PowerShell pipes a native program's output, it decodes it with the console code page, so on a non-UTF-8 code page (for example Traditional Chinese, 950) CJK names break. Run `[Console]::OutputEncoding = [Text.UTF8Encoding]::new()` first. Output redirected to a file (`> devices.txt`) is always UTF-8, and plain console output is always correct. Endpoint ids are ASCII, so have scripts match on ids rather than names. |

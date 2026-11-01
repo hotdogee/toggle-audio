@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-01
+
+### Fixed
+
+- A Windows or audio driver update that replaced a device's endpoint id broke the toggle with "nothing to switch to: neither ... is connected and enabled", although both devices were connected. Toggle Audio now also saves each device's stable id (Windows 11 24H2 and later). When a saved id stops working it finds the device by stable id, or by its exact name if exactly one connected device has that name, and updates the configuration itself. Existing configurations repair themselves on the next press. The normal toggle path makes no additional calls.
+- A device that really cannot be found is no longer reported as disconnected: the message says that Windows no longer has it and to choose a replacement in Settings.
+- The settings dialog opens with such a device selected at its new endpoint instead of listing it as "(not connected)".
+
 ### Added
 
 - winget manifests for `Hotdogee.ToggleAudio` under `installer/winget/` and a `winget` workflow that submits each new release to microsoft/winget-pkgs.
@@ -36,5 +44,6 @@ Initial native release; replaces the PowerShell proof of concept (`Switch-Audio.
 - Documentation: README with install, hotkey set-up (G HUB and other launchers), command-line and configuration reference, compatibility and troubleshooting notes; `docs/benchmarks.md`; `docs/packaging.md`.
 - Continuous integration (format, lint, tests, release build with a static C runtime check, benchmark builds, MSI build and validation) and tag-driven release automation with the MSI, a portable zip and `SHA256SUMS.txt`.
 
-[Unreleased]: https://github.com/hotdogee/toggle-audio/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/hotdogee/toggle-audio/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/hotdogee/toggle-audio/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/hotdogee/toggle-audio/releases/tag/v0.1.0

@@ -9,7 +9,9 @@
        --version, list and get once more through toggle-audiow.exe.
     3. Unless -SkipToggle: writes a temporary configuration with -Device1 / -Device2, runs "toggle"
        2 x -Rounds times and "set" by name and by id, and verifies the default and default
-       communications devices with Get-AudioDevice after every step.
+       communications devices with Get-AudioDevice after every step. It then saves ids that do not
+       exist, as a Windows update leaves them, and checks that the devices are found again by name
+       and by stable id and that the configuration is repaired.
 
     Every run of the program gets APPDATA pointed at a scratch directory, so the user's real
     configuration (%APPDATA%\toggle-audio\config.json) is never read or written. A finally block
@@ -46,8 +48,8 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$Device1 = '{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}',
-    [string]$Device2 = '{0.0.0.00000000}.{5b124733-5d8f-428c-b83c-ee05ce6467fb}',
+    [string]$Device1 = '{0.0.0.00000000}.{c9f7cc37-c71e-486e-beee-5010ed8616b7}',
+    [string]$Device2 = '{0.0.0.00000000}.{6a85b4c1-ef96-4850-bddf-afb4a21bbee2}',
     [ValidateRange(1, 100)][int]$Rounds = 2,
     [switch]$SkipToggle,
     [switch]$SkipBuild,
@@ -294,6 +296,41 @@ if ($SkipToggle) {
         Test-Check ($r.ExitCode -eq 0 -and (Test-SameId (Get-OracleDefault) $second.ID)) "set '$($second.Name)' makes it the default (exit $($r.ExitCode))"
         $r = Invoke-Exe @('set', $first.ID)
         Test-Check ($r.ExitCode -eq 0 -and (Test-SameId (Get-OracleDefault) $first.ID)) "set <Device1 id> makes it the default (exit $($r.ExitCode))"
+
+        Write-Step 'saved ids that Windows no longer has'
+        # What a Windows update leaves behind: well-formed ids that no endpoint has any more.
+        $dead1 = '{0.0.0.00000000}.{00000000-0000-0000-0000-00000000dead}'
+        $dead2 = '{0.0.0.00000000}.{00000000-0000-0000-0000-00000000beef}'
+        function Write-TestConfig($DeviceOne, $DeviceTwo) {
+            $text = [ordered]@{ version = 1; device1 = $DeviceOne; device2 = $DeviceTwo; switch_communications = $true } | ConvertTo-Json -Depth 3
+            [IO.File]::WriteAllText($configPath, $text, (New-Object System.Text.UTF8Encoding($false)))
+        }
+        function Read-TestConfig { return [IO.File]::ReadAllText($configPath) | ConvertFrom-Json }
+
+        Write-TestConfig ([ordered]@{ id = $dead1; name = $first.Name }) ([ordered]@{ id = $dead2; name = $second.Name })
+        $r = Invoke-Exe @('toggle')
+        Test-Check ($r.ExitCode -eq 0 -and (Test-SameId (Get-OracleDefault) $second.ID)) "dead ids with no stable id: found by name and switched (exit $($r.ExitCode))"
+        $saved = Read-TestConfig
+        Test-Check ((Test-SameId $saved.device1.id $first.ID) -and (Test-SameId $saved.device2.id $second.ID)) 'the configuration now has the current ids'
+        Test-Check ($null -ne $saved.device1.stable_id -and $null -ne $saved.device2.stable_id) 'the configuration records both stable ids'
+
+        if ($saved.device1.stable_id -and $saved.device2.stable_id) {
+            # Names no endpoint has, so only the stable ids can find the devices.
+            Write-TestConfig ([ordered]@{ id = $dead1; name = 'renamed one'; stable_id = $saved.device1.stable_id }) ([ordered]@{ id = $dead2; name = 'renamed two'; stable_id = $saved.device2.stable_id })
+            $r = Invoke-Exe @('toggle')
+            Test-Check ($r.ExitCode -eq 0 -and (Test-SameId (Get-OracleDefault) $first.ID)) "dead ids with stable ids: found and switched (exit $($r.ExitCode))"
+            $healed = Read-TestConfig
+            Test-Check ((Test-SameId $healed.device1.id $first.ID) -and $healed.device1.name -eq $first.Name) 'the configuration has the current id and the live name again'
+        } else {
+            Write-Host '  no stable ids on this Windows version; skipping that check'
+            Invoke-Exe @('set', $first.ID) | Out-Null
+        }
+
+        Write-TestConfig ([ordered]@{ id = $dead1; name = 'no such device' }) ([ordered]@{ id = $dead2; name = 'no such device either' })
+        $before = [IO.File]::ReadAllText($configPath)
+        $r = Invoke-Exe @('toggle')
+        Test-Check ($r.ExitCode -eq 4 -and $r.Stderr -match 'Windows no longer has the saved devices' -and $r.Stderr -notmatch 'connected') "nothing to find: exit 4 and an honest message (exit $($r.ExitCode))"
+        Test-Check ((Test-SameId (Get-OracleDefault) $first.ID) -and [IO.File]::ReadAllText($configPath) -ceq $before) 'nothing to find: default and configuration unchanged'
     } finally {
         Write-Step 'restore'
         Remove-Item -LiteralPath $script:AppData -Recurse -Force -ErrorAction SilentlyContinue

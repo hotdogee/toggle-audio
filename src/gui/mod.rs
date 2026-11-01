@@ -64,7 +64,8 @@ pub enum DialogOutcome {
 ///
 /// - `config_path`: where Save writes the configuration (atomically, via [`crate::config::save`]).
 /// - `existing`: the current configuration, used to preselect the combos and the checkbox. A
-///   configured device that is not active is listed as `(not connected) <name>` and stays
+///   device whose saved id stopped working is preselected where [`crate::toggle::relocate`] finds
+///   it. A configured device that is not active is listed as `(not connected) <name>` and stays
 ///   selectable.
 /// - `reason`: why the dialog opens, which selects the initial status text.
 /// - `exe_path`: the executable to show and copy for the G HUB binding (normally
