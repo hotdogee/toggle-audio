@@ -274,7 +274,11 @@ fn test_devices(audio: &AudioSystem) -> toggle_audio::Result<Option<(DeviceRef, 
             "{id} is not an active playback device"
         );
         let name = audio.name_of(&id)?.unwrap_or_default();
-        Ok(DeviceRef { id, name })
+        Ok(DeviceRef {
+            id,
+            name,
+            stable_id: None,
+        })
     };
     Ok(Some((device(first)?, device(second)?)))
 }
@@ -324,6 +328,73 @@ fn toggle_round_trip_restores_the_default() -> toggle_audio::Result<()> {
         let now = audio.default_id(*role)?.expect("a default after restoring");
         assert!(now.eq_ignore_ascii_case(id), "{role:?} not restored");
     }
+    Ok(())
+}
+
+/// Every stable id Windows reports leads back to its endpoint. Read-only.
+#[test]
+#[ignore = "needs a Windows machine with an active playback device"]
+fn stable_ids_resolve_to_their_endpoint() -> toggle_audio::Result<()> {
+    let _serial = serial();
+    let audio = AudioSystem::new()?;
+    for endpoint in audio.list_active()? {
+        let Some(stable_id) = audio.stable_id_of(&endpoint.id)? else {
+            eprintln!("{} has no stable id", endpoint.name);
+            continue;
+        };
+        let found = audio.lookup(&stable_id)?;
+        assert_eq!(found, Some((endpoint.id.clone(), true)), "{endpoint:?}");
+    }
+    assert_eq!(audio.stable_id_of(UNKNOWN_ID)?, None);
+    Ok(())
+}
+
+/// The dead-id scenario this repair exists for, without touching any default device: the saved
+/// ids no longer exist, as after a Windows update, and the devices are found again.
+#[test]
+#[ignore = "needs a Windows machine with an active playback device"]
+fn dead_ids_are_relocated_by_stable_id_and_by_name() -> toggle_audio::Result<()> {
+    let _serial = serial();
+    let audio = AudioSystem::new()?;
+    let default = console_default(&audio)?;
+    let spare = DeviceRef {
+        id: "{0.0.0.00000000}.{00000000-0000-0000-0000-000000000001}".to_owned(),
+        ..DeviceRef::default()
+    };
+
+    if let Some(stable_id) = audio.stable_id_of(&default.id)? {
+        let saved = DeviceRef {
+            id: UNKNOWN_ID.to_owned(),
+            name: "not the name, so only the stable id can find it".to_owned(),
+            stable_id: Some(stable_id),
+        };
+        let (found, _) = toggle::relocate(&audio, &saved, &spare)?;
+        assert_eq!(found.id, default.id);
+    }
+
+    let unique_name = audio
+        .list_active()?
+        .iter()
+        .filter(|endpoint| endpoint.name == default.name)
+        .count()
+        == 1;
+    if unique_name {
+        let saved = DeviceRef {
+            id: UNKNOWN_ID.to_owned(),
+            name: default.name.clone(),
+            stable_id: None,
+        };
+        let (found, _) = toggle::relocate(&audio, &saved, &spare)?;
+        assert_eq!(found.id, default.id);
+    }
+
+    let saved = DeviceRef {
+        id: UNKNOWN_ID.to_owned(),
+        name: "no endpoint has this name".to_owned(),
+        stable_id: None,
+    };
+    let (found, _) = toggle::relocate(&audio, &saved, &spare)?;
+    assert_eq!(found, saved);
     Ok(())
 }
 

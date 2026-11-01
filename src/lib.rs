@@ -105,9 +105,14 @@ fn dispatch(options: &Options, output: &Output, timing: &mut Timing) -> Result<E
 
 /// `toggle`: the hot path (DESIGN.md section 7), through [`toggle::perform`], which stamps its
 /// phases into `timing`.
+///
+/// After the switch, when a device was found under a new id or a stable id is not recorded yet,
+/// the configuration is updated. This is never reached on a normal press, and it cannot delay the
+/// switch or fail it: a configuration that cannot be written only produces a warning, and the next
+/// toggle does the same work again.
 fn toggle(options: &Options, output: &Output, timing: &mut Timing) -> Result<ExitCode> {
     let path = config::default_path()?;
-    let config = match config::load(&path) {
+    let mut config = match config::load(&path) {
         Ok(Some(config)) => config,
         Ok(None) => {
             let missing = Error::NoConfig(path.clone());
@@ -143,6 +148,20 @@ fn toggle(options: &Options, output: &Output, timing: &mut Timing) -> Result<Exi
         if let Some(warning) = &outcome.warning {
             output.err(&format!("toggle-audio: warning: {warning}\n"));
         }
+    }
+
+    let changed = toggle::update_config(
+        &mut config,
+        &outcome.moved,
+        |id| audio.name_of(id),
+        |id| audio.stable_id_of(id),
+    );
+    // A device found twice under one id would make the file invalid, and nothing could load it.
+    if changed && config.validate().is_ok() {
+        if let Err(error) = config::save(&path, &config) {
+            output.err(&format!("toggle-audio: warning: {error}\n"));
+        }
+        timing.mark("config_updated");
     }
     Ok(ExitCode::SUCCESS)
 }

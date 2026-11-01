@@ -18,7 +18,7 @@ use std::ffi::c_void;
 use std::marker::PhantomData;
 
 use windows::Win32::Devices::FunctionDiscovery::PKEY_Device_FriendlyName;
-use windows::Win32::Foundation::{E_INVALIDARG, ERROR_NOT_FOUND, RPC_E_CHANGED_MODE};
+use windows::Win32::Foundation::{E_INVALIDARG, ERROR_NOT_FOUND, PROPERTYKEY, RPC_E_CHANGED_MODE};
 use windows::Win32::Media::Audio::{
     DEVICE_STATE_ACTIVE, ERole, IMMDevice, IMMDeviceEnumerator, IMMEndpoint, MMDeviceEnumerator,
     eCommunications, eConsole, eMultimedia, eRender,
@@ -44,6 +44,13 @@ const CLSID_POLICY_CONFIG_CLIENT: GUID = GUID::from_u128(0x870a_f99c_171d_4f9e_a
 /// `CPolicyConfigVistaClient` (AudioSes.dll), which implements [`IPolicyConfigVista`].
 const CLSID_POLICY_CONFIG_VISTA_CLIENT: GUID =
     GUID::from_u128(0x2949_35ce_f637_4e7c_a41b_ab25_5460_b862);
+
+/// `PKEY_AudioEndpoint_StableId` from `mmdeviceapi.h` (Windows 11 24H2 and later), which the
+/// `windows` crate does not define yet.
+const PKEY_AUDIO_ENDPOINT_STABLE_ID: PROPERTYKEY = PROPERTYKEY {
+    fmtid: GUID::from_u128(0x1da5_d803_d492_4edd_8c23_e0c0_ffee_7f0e),
+    pid: 12,
+};
 
 /// A Windows audio device role (`ERole`).
 ///
@@ -89,7 +96,8 @@ pub fn roles_for(switch_communications: bool) -> &'static [Role] {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Endpoint {
     /// Endpoint id from `IMMDevice::GetId`, for example
-    /// `{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}`. Opaque; this is the identity.
+    /// `{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}`. Opaque; this is the identity
+    /// until a Windows or driver update replaces it ([`AudioSystem::stable_id_of`]).
     pub id: String,
     /// `PKEY_Device_FriendlyName`, exactly what Sound settings shows, for example
     /// `喇叭 (FiiO BTA30 PRO)`. Not unique and user-renamable; display only. Empty in the unusual
@@ -234,6 +242,28 @@ impl AudioSystem {
         };
         let name = friendly_name(&device)?;
         Ok((!name.is_empty()).then_some(name))
+    }
+
+    /// The stable id (`PKEY_AudioEndpoint_StableId`) of playback endpoint `id` in any state.
+    ///
+    /// Microsoft: the id from `IMMDevice::GetId` "is not stable. An operating system update or an
+    /// audio driver update can cause the same physical peripheral to be assigned a different
+    /// endpoint ID", while Windows attempts to preserve the stable id across those updates. The
+    /// value is opaque and case-sensitive, and `GetDevice` accepts it, so [`AudioSystem::lookup`]
+    /// resolves it to the endpoint's current id.
+    ///
+    /// `None` when `id` is unknown, malformed or names a recording endpoint, or Windows has no
+    /// stable id for the endpoint (not every endpoint has one, and Windows before 11 24H2 has none).
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Com`] for any other failure, including a failed property store read.
+    pub fn stable_id_of(&self, id: &str) -> Result<Option<String>> {
+        let Some(device) = self.device(id)? else {
+            return Ok(None);
+        };
+        let stable_id = string_property(&device, &PKEY_AUDIO_ENDPOINT_STABLE_ID)?;
+        Ok((!stable_id.is_empty()).then_some(stable_id))
     }
 
     /// Makes playback endpoint `id` the default for each of `roles`, in order, and returns whether
@@ -684,14 +714,18 @@ fn id_of(device: &IMMDevice) -> Result<String> {
 
 /// `PKEY_Device_FriendlyName` of `device`, or `""` when the property is missing or not a string.
 fn friendly_name(device: &IMMDevice) -> Result<String> {
+    string_property(device, &PKEY_Device_FriendlyName)
+}
+
+/// The string property `key` of `device`, or `""` when it is missing or not a string.
+fn string_property(device: &IMMDevice, key: &PROPERTYKEY) -> Result<String> {
     // SAFETY: `device` is a live interface pointer and `STGM_READ` is a valid access mode.
     let store = unsafe { device.OpenPropertyStore(STGM_READ) }
         .map_err(Error::com("IMMDevice::OpenPropertyStore"))?;
     // The windows crate's `Drop for PROPVARIANT` calls `PropVariantClear`, so `value` (and the
     // string it owns) is freed on every path out of this function.
-    // SAFETY: `store` is a live interface pointer and the key is a static PROPERTYKEY.
-    let value = unsafe { store.GetValue(&PKEY_Device_FriendlyName) }
-        .map_err(Error::com("IPropertyStore::GetValue"))?;
+    // SAFETY: `store` is a live interface pointer and `key` is a valid PROPERTYKEY reference.
+    let value = unsafe { store.GetValue(key) }.map_err(Error::com("IPropertyStore::GetValue"))?;
     if value.vt() != VT_LPWSTR {
         return Ok(String::new());
     }

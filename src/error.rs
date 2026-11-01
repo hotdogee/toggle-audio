@@ -65,12 +65,16 @@ pub enum Error {
     /// either not active or already the default. The strings are display names (the friendly
     /// name, or the id when the configuration has no name).
     NoDeviceAvailable {
-        /// The configured devices that are not active (unplugged, disabled or unknown): one or
-        /// two, preferred device first.
+        /// The configured devices that are known to Windows but not active (unplugged or
+        /// disabled), preferred device first.
         unavailable: Vec<String>,
         /// The configured device that already is the default, if that is why the other one could
         /// not be used as a fallback.
         already_default: Option<String>,
+        /// The configured devices Windows no longer knows under any saved id, and that could not
+        /// be found by name either. They may well be connected, so the message must not say that
+        /// they are not.
+        lost: Vec<String>,
     },
     /// Windows reports no default playback device (`GetDefaultAudioEndpoint` returned `E_NOTFOUND`).
     NoDefaultDevice,
@@ -193,19 +197,36 @@ impl fmt::Display for Error {
             Self::NoDeviceAvailable {
                 unavailable,
                 already_default,
+                lost,
             } => {
                 f.write_str("nothing to switch to: ")?;
-                match unavailable.as_slice() {
-                    [device] => write!(f, "\"{device}\" is not connected or is disabled")?,
-                    [first, second] => write!(
+                match (unavailable.as_slice(), lost.as_slice()) {
+                    ([device], []) => write!(f, "\"{device}\" is not connected or is disabled")?,
+                    ([first, second], []) => write!(
                         f,
                         "neither \"{first}\" nor \"{second}\" is connected and enabled"
                     )?,
+                    ([], [device]) => {
+                        write!(f, "Windows no longer has the saved device \"{device}\"")?;
+                    }
+                    ([], [first, second]) => write!(
+                        f,
+                        "Windows no longer has the saved devices \"{first}\" and \"{second}\""
+                    )?,
+                    ([device], [gone]) => write!(
+                        f,
+                        "\"{device}\" is not connected or is disabled, and Windows no longer has \
+                         the saved device \"{gone}\""
+                    )?,
                     _ => f.write_str("no configured device is connected and enabled")?,
                 }
-                match already_default {
-                    Some(device) => write!(f, ", and \"{device}\" is already the default"),
-                    None => Ok(()),
+                if let Some(device) = already_default {
+                    write!(f, ", and \"{device}\" is already the default")?;
+                }
+                if lost.is_empty() {
+                    Ok(())
+                } else {
+                    f.write_str(". Open Settings to choose a replacement")
                 }
             }
             Self::NoDefaultDevice => f.write_str("Windows reports no default playback device"),
@@ -322,6 +343,7 @@ mod tests {
                 Error::NoDeviceAvailable {
                     unavailable: vec!["a".into(), "b".into()],
                     already_default: None,
+                    lost: Vec::new(),
                 },
                 EXIT_DEVICE,
             ),
@@ -397,27 +419,56 @@ mod tests {
         );
     }
 
+    /// The message of a `NoDeviceAvailable` error.
+    fn no_device_text(
+        unavailable: &[&str],
+        already_default: Option<&str>,
+        lost: &[&str],
+    ) -> String {
+        let owned = |names: &[&str]| names.iter().map(|&name| name.to_owned()).collect();
+        Error::NoDeviceAvailable {
+            unavailable: owned(unavailable),
+            already_default: already_default.map(str::to_owned),
+            lost: owned(lost),
+        }
+        .to_string()
+    }
+
     #[test]
     fn no_device_available_names_the_precise_reason() {
-        let text = |unavailable: &[&str], already_default: Option<&str>| {
-            Error::NoDeviceAvailable {
-                unavailable: unavailable.iter().map(|&name| name.to_owned()).collect(),
-                already_default: already_default.map(str::to_owned),
-            }
-            .to_string()
-        };
+        let text = no_device_text;
         assert_eq!(
-            text(&["B"], Some("A")),
+            text(&["B"], Some("A"), &[]),
             "nothing to switch to: \"B\" is not connected or is disabled, and \"A\" is already \
              the default"
         );
         assert_eq!(
-            text(&["A", "B"], None),
+            text(&["A", "B"], None, &[]),
             "nothing to switch to: neither \"A\" nor \"B\" is connected and enabled"
         );
         assert_eq!(
-            text(&[], None),
+            text(&[], None, &[]),
             "nothing to switch to: no configured device is connected and enabled"
+        );
+    }
+
+    #[test]
+    fn devices_windows_forgot_are_not_called_disconnected() {
+        let text = no_device_text;
+        assert_eq!(
+            text(&[], None, &["A", "B"]),
+            "nothing to switch to: Windows no longer has the saved devices \"A\" and \"B\". Open \
+             Settings to choose a replacement"
+        );
+        assert_eq!(
+            text(&[], Some("A"), &["B"]),
+            "nothing to switch to: Windows no longer has the saved device \"B\", and \"A\" is \
+             already the default. Open Settings to choose a replacement"
+        );
+        assert_eq!(
+            text(&["A"], None, &["B"]),
+            "nothing to switch to: \"A\" is not connected or is disabled, and Windows no longer \
+             has the saved device \"B\". Open Settings to choose a replacement"
         );
     }
 }

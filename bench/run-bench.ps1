@@ -146,8 +146,8 @@ if ($ToggleRuns % 2) { throw '-ToggleRuns must be even, so every toggle row ends
 
 $Bench = $PSScriptRoot
 $Repo = Split-Path -Parent $Bench
-$Pg = '{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}'      # PG42UQ (NVIDIA High Definition Audio)
-$Phl = '{0.0.0.00000000}.{5b124733-5d8f-428c-b83c-ee05ce6467fb}'     # PHL BDM4065 (NVIDIA High Definition Audio)
+$Pg = '{0.0.0.00000000}.{c9f7cc37-c71e-486e-beee-5010ed8616b7}'      # PG42UQ (NVIDIA High Definition Audio)
+$Phl = '{0.0.0.00000000}.{6a85b4c1-ef96-4850-bddf-afb4a21bbee2}'     # PHL BDM4065 (NVIDIA High Definition Audio)
 $Spdif = '{0.0.0.00000000}.{0b317ab3-7e08-4d56-975a-f33b90d5b57a}'   # Digital Audio (S/PDIF), legacy script only
 $Bogus = '{0.0.0.00000000}.{00000000-0000-0000-0000-000000000000}'
 $Legacy = $LegacyExe

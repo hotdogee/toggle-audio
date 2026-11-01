@@ -70,6 +70,14 @@ choose_target(current: Option<&str>, device1, device2, is_active: impl Fn(&str) 
 
 Mirrors the proof of concept (device1 unless device1 is current) but survives an unplugged device without a silent no-op. `is_active` is `IMMDeviceEnumerator::GetDevice(id)` + `GetState() == DEVICE_STATE_ACTIVE` (GetDevice succeeds for unplugged/disabled devices, so the state check is mandatory).
 
+**Finding the configured devices.** Endpoint ids are not stable. Microsoft documents that an operating system or audio driver update can give the same peripheral a new id, and one did on the reference machine (2026-10-31, build 26300: four of five playback endpoints, all with their stable ids unchanged). Before `choose_target` runs, each configured device is located. Each step runs only when the one before it failed:
+
+1. `GetDevice(id)`. An active endpoint ends the search. This is the hot path and it makes no call that it did not make before.
+2. `GetDevice(stable_id)`, with the saved `PKEY_AudioEndpoint_StableId` (`{1da5d803-d492-4edd-8c23-e0c0ffee7f0e},12`, Windows 11 24H2 and later; opaque and case-sensitive). This also runs for a known but inactive endpoint, because an update can leave the old endpoint behind as not present: the endpoint it finds wins only when it is active and different.
+3. Only when Windows knows neither id: the exact friendly name, when exactly one active endpoint has it and that endpoint is not the other configured device. Microsoft calls the stable id best effort, so this covers the peripherals whose stable id changes too, and configurations saved before stable ids were recorded. A known but inactive device never reaches this step, so unplugging a device cannot retarget the toggle to an identical one.
+
+After the switch, a device found under a new id is written back (id, live name, fresh stable id) and a missing `stable_id` is recorded once; `""` means Windows has none, so it is not asked again. Neither can delay or fail the switch: a failed read or write is retried on the next toggle. A device that cannot be found is lost, not disconnected, and `NoDeviceAvailable` and the fallback warning say so instead of claiming it is unplugged. The settings dialog opens with the same search applied and reads stable ids on Save.
+
 Roles: `eConsole` and `eMultimedia` always; `eCommunications` when `switch_communications` is true (default true). Order console, multimedia, communications. Skip a role whose current default already is the target.
 
 ## 7. Core Audio access (`src/audio.rs`, the only module allowed to touch COM besides the GUI)
@@ -80,17 +88,25 @@ Roles: `eConsole` and `eMultimedia` always; `eCommunications` when `switch_commu
 - Set: `CoCreateInstance(CLSID {870af99c-171d-4f9e-af0d-e63df40c2bc9})` → `IPolicyConfig` `{f8679f50-850a-41cf-9c72-430f290290c8}`, `SetDefaultEndpoint(PCWSTR, ERole)` at 0-based vtable slot 13 (verified against AudioSes.dll symbols and five sources). Fallback if that fails: CLSID `{294935CE-F637-4E7C-A41B-AB255460B862}` → `IPolicyConfigVista` `{568b9108-44bf-40b4-9006-86afe5b5a620}`, slot 12. Declared with `windows_core::interface` as in `docs/research/core-audio-api.md` §C.2 (do not copy the Vista layouts from SoundSwitch/AudioDeviceCmdlets; they carry an extra method).
 - Public surface (sketch): `struct Endpoint { id: String, name: String }`, `struct AudioSystem` (owns the COM init guard and enumerator) with `list_active() -> Result<Vec<Endpoint>>`, `default_for(role) -> Result<Option<Endpoint>>`, `is_active(id) -> Result<bool>`, `name_of(id) -> Result<Option<String>>`, `set_default(id, &[Role]) -> Result<()>`. Errors carry the HRESULT and the failing call.
 
-Hot path for `toggle`: parse args → read config → `AudioSystem::new()` → `default_for(Console)` → `choose_target` with `is_active` → `set_default`. No full enumeration.
+Hot path for `toggle`: parse args → read config → `AudioSystem::new()` → `default_for(Console)` → `choose_target` with `is_active` → `set_default`. No full enumeration (only step 3 of "Finding the configured devices" in section 6 enumerates, once, when a saved device is lost).
 
 ## 8. Configuration (`src/config.rs`)
 
-Path: `%APPDATA%\toggle-audio\config.json` (`SHGetKnownFolderPath(FOLDERID_RoamingAppData)`, falling back to the `APPDATA` variable). Written atomically (write `config.json.tmp`, then `MoveFileExW` replace). Unknown fields ignored; `switch_communications` defaults to true; `name` is informational (used in errors and in the dialog when the device is not connected).
+Path: `%APPDATA%\toggle-audio\config.json` (`SHGetKnownFolderPath(FOLDERID_RoamingAppData)`, falling back to the `APPDATA` variable). Written atomically (write `config.json.tmp`, then `MoveFileExW` replace). Unknown fields ignored; `switch_communications` defaults to true; `name` is used in errors, in the dialog when the device is not connected, and as the last resort for finding a device (section 6); `stable_id` is optional and written by the program. It needs no version bump: older builds ignore it.
 
 ```json
 {
   "version": 1,
-  "device1": { "id": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}", "name": "PG42UQ (NVIDIA High Definition Audio)" },
-  "device2": { "id": "{0.0.0.00000000}.{30045f40-8cfd-4441-bb89-0d13fc19b589}", "name": "喇叭 (FiiO BTA30 PRO)" },
+  "device1": {
+    "id": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+    "name": "PG42UQ (NVIDIA High Definition Audio)",
+    "stable_id": "{0.0.0.00000000}.{001.{31E3A048-D22C-4C75-853B-3DC39707E1A7}}"
+  },
+  "device2": {
+    "id": "{0.0.0.00000000}.{30045f40-8cfd-4441-bb89-0d13fc19b589}",
+    "name": "喇叭 (FiiO BTA30 PRO)",
+    "stable_id": "{0.0.0.00000000}.{001.{19DD8A43-B8DD-4C72-B721-7B506462F9FA}}"
+  },
   "switch_communications": true
 }
 ```
@@ -177,7 +193,7 @@ Decided during implementation and review; the sections above keep the original t
 
 - §4: `toggle-audiow.exe` compiles `assets/app-windowed.rc`, which includes `app.rc` with its own `OriginalFilename`. On Windows versions that ignore `consoleAllocationPolicy` (before 11 24H2), `toggle-audio.exe` frees a console that no other process shares (`GetConsoleProcessList` = 1), so a hotkey launch still reports errors in a message box and opens Settings.
 - §5: a toggle without a usable configuration (missing, unreadable or invalid) opens Settings only when there is no console; from a terminal it prints the error with a hint to run `settings` and exits 3. After a first-run Save a message box says to press the hotkey again; that press does not toggle. `set` treats a broken configuration as a warning and uses the default roles. `--timing` starts after parsing (the parsed flag is the only source of truth); stamps still count from process creation. Exit 4 also covers a name that matches several devices: `set` lists the matches (name and id) and asks for the full name or the id. A hotkey press while a Settings dialog is already open (also during first-run setup) brings that dialog to the front and exits 0; only Cancel exits 3. `set` prints the endpoint id when the device has no friendly name.
-- §6: "nothing to switch to" names the unavailable device and, when that is the reason, the device that already is the default. Before deciding, the toggle looks up both configured ids (`AudioSystem::lookup`: `GetDevice`, `GetId`, `GetState`), so the comparison with the current default uses Windows' own spelling of each id (another case, or a Windows 11 24H2 stable id that `GetDevice` also accepts, still matches); an id Windows does not know counts as not connected.
+- §6: "nothing to switch to" names the unavailable device and, when that is the reason, the device that already is the default. Before deciding, the toggle looks up both configured ids (`AudioSystem::lookup`: `GetDevice`, `GetId`, `GetState`), so the comparison with the current default uses Windows' own spelling of each id (another case, or a Windows 11 24H2 stable id that `GetDevice` also accepts, still matches); a device that cannot be found counts as not active, and the message says Windows no longer has it.
 - §7: only `eRender` endpoints are accepted (`IMMEndpoint::GetDataFlow`); a recording endpoint id behaves like an unknown id, so `set` can never change the default microphone. The `IPolicyConfigVista` fallback also covers a failing `IPolicyConfig::SetDefaultEndpoint`, not only a missing class. The hot path reads only the current default's id (`default_id`), not its name, and passes the console default it read on to `set_default`, which skips reading it again (each read is a call into the audio service, about 1.2 ms).
 - §8: the `APPDATA` variable is read first and `SHGetKnownFolderPath` is the fallback: it saves about 2 ms per toggle and lets tests redirect the configuration. The atomic replace uses `std::fs::rename` (`MoveFileExW` with `MOVEFILE_REPLACE_EXISTING`). Whitespace around ids is trimmed on load.
 - §9: Save closes the dialog at once, so no "Saved to" status is shown. Copy copies the plain, unquoted exe path for the Path field of G HUB's Launch Application action (its Browse button produces the same form; still to be confirmed against G HUB). A named mutex (`Local\Hotdogee.ToggleAudio.Settings`) keeps one dialog per session and brings an open one to the front. The dialog uses `DS_SETFOREGROUND` plus a topmost round trip, a three-line status, and appends the end of the endpoint id to friendly names that occur twice.

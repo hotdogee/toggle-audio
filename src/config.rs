@@ -2,15 +2,24 @@
 //!
 //! Stored as JSON at `%APPDATA%\toggle-audio\config.json` ([`default_path`]) and written
 //! atomically ([`save`]). Unknown fields are ignored, `switch_communications` defaults to `true`
-//! and a device `name` defaults to empty; the name is informational only (error messages, and the
-//! settings dialog when the device is not connected). Whitespace around a device id (a stray space
-//! from hand editing) is removed when the file is loaded. Example:
+//! and a device `name` defaults to empty. The name is shown in messages, and it is the last resort
+//! for finding a device whose ids stopped working ([`crate::toggle`]). `stable_id` is optional and
+//! written by the program. Whitespace around a device id (a stray space from hand editing) is
+//! removed when the file is loaded. Example:
 //!
 //! ```json
 //! {
 //!   "version": 1,
-//!   "device1": { "id": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}", "name": "PG42UQ (NVIDIA High Definition Audio)" },
-//!   "device2": { "id": "{0.0.0.00000000}.{30045f40-8cfd-4441-bb89-0d13fc19b589}", "name": "喇叭 (FiiO BTA30 PRO)" },
+//!   "device1": {
+//!     "id": "{0.0.0.00000000}.{739b3554-bfed-4d61-b407-a818b317c991}",
+//!     "name": "PG42UQ (NVIDIA High Definition Audio)",
+//!     "stable_id": "{0.0.0.00000000}.{001.{31E3A048-D22C-4C75-853B-3DC39707E1A7}}"
+//!   },
+//!   "device2": {
+//!     "id": "{0.0.0.00000000}.{30045f40-8cfd-4441-bb89-0d13fc19b589}",
+//!     "name": "喇叭 (FiiO BTA30 PRO)",
+//!     "stable_id": "{0.0.0.00000000}.{001.{19DD8A43-B8DD-4C72-B721-7B506462F9FA}}"
+//!   },
 //!   "switch_communications": true
 //! }
 //! ```
@@ -46,11 +55,21 @@ const UTF8_BOM: &[u8] = b"\xEF\xBB\xBF";
 /// A configured playback endpoint.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DeviceRef {
-    /// Endpoint id (`IMMDevice::GetId`). This is the identity used for switching.
+    /// Endpoint id (`IMMDevice::GetId`). This is the identity used for switching. A Windows or
+    /// driver update can replace it, in which case the toggle finds the device again and rewrites
+    /// this field.
     pub id: String,
-    /// Friendly name at the time the device was chosen. Informational only.
+    /// Friendly name at the time the device was chosen. Shown in messages, and the last resort
+    /// for finding the device when neither id works.
     #[serde(default)]
     pub name: String,
+    /// `PKEY_AudioEndpoint_StableId`, which finds the device when `id` stops working. Opaque and
+    /// case-sensitive, so it is never trimmed or normalized.
+    ///
+    /// `None`: not read yet. `Some("")`: read, and Windows has none for this endpoint, which keeps
+    /// the toggle from asking again on every press.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stable_id: Option<String>,
 }
 
 /// The whole configuration file.
@@ -289,6 +308,7 @@ mod tests {
         DeviceRef {
             id: id.to_owned(),
             name: name.to_owned(),
+            stable_id: None,
         }
     }
 
@@ -321,6 +341,22 @@ mod tests {
     }
 
     #[test]
+    fn stable_ids_round_trip_and_stay_out_of_the_file_until_known() {
+        let dir = TempDir::new("stable");
+        let path = dir.file("config.json");
+        let mut config = sample();
+        save(&path, &config).unwrap();
+        let text = fs::read_to_string(&path).unwrap();
+        assert!(!text.contains("stable_id"), "{text}");
+
+        // Case and surrounding spaces survive: the value is opaque and case-sensitive.
+        config.device1.stable_id = Some(" {0.0.0.00000000}.{001.{AbC}} ".to_owned());
+        config.device2.stable_id = Some(String::new());
+        save(&path, &config).unwrap();
+        assert_eq!(load(&path).unwrap(), Some(config));
+    }
+
+    #[test]
     fn missing_optional_fields_take_their_defaults() {
         let config: Config =
             serde_json::from_str(r#"{ "device1": { "id": "a" }, "device2": { "id": "b" } }"#)
@@ -328,6 +364,7 @@ mod tests {
         assert_eq!(config.version, CURRENT_VERSION);
         assert!(config.switch_communications);
         assert_eq!(config.device1.name, "");
+        assert_eq!(config.device1.stable_id, None);
     }
 
     #[test]
